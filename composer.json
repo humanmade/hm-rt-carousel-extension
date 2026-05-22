@@ -1,0 +1,9 @@
+{
+	"name": "humanmade/hm-rt-carousel-extension",
+	"description": "Carousel block extensions and editor enhancements.",
+	"type": "wordpress-muplugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.3"
+	}
+}
