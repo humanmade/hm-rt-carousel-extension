@@ -4,7 +4,7 @@ WordPress plugin that extends the [rt-carousel](https://github.com/rtCamp/rt-car
 
 ## Requirements
 
-- [rt-carousel](https://github.com/rtCamp/rt-carousel-block) plugin active. The plugin will not bootstrap if `RT_CAROUSEL_PATH` is not defined.
+- The [rt-carousel](https://github.com/rtCamp/rt-carousel-block) plugin must be active. The plugin will not bootstrap if `RT_CAROUSEL_PATH` is not defined.
 
 ## Features
 
@@ -12,10 +12,10 @@ WordPress plugin that extends the [rt-carousel](https://github.com/rtCamp/rt-car
 
 Adds editor supports not included in rt-carousel by default:
 
-| Block | Supports added |
-|---|---|
-| `rt-carousel/carousel` | Spacing (margin top/bottom, blockGap), disables background colour |
-| `rt-carousel/carousel-viewport` | Spacing (margin top/bottom) |
+| Block                           | Supports added                                                     |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `rt-carousel/carousel`          | Spacing (margin top/bottom, blockGap), disables background colour  |
+| `rt-carousel/carousel-viewport` | Spacing (margin top/bottom)                                        |
 | `rt-carousel/carousel-controls` | Spacing (margin top/bottom, blockGap), flex layout, wide alignment |
 
 ### Slide gap preset picker
@@ -35,9 +35,9 @@ npm install
 npm run build
 ```
 
-| Command | Description |
-|---|---|
-| `npm run build` | Production build to `build/` |
-| `npm run start` | Watch mode with hot module replacement |
-| `npm run lint:js` | Lint JavaScript source |
-| `npm run lint:style` | Lint SCSS source |
+| Command              | Description                            |
+| -------------------- | -------------------------------------- |
+| `npm run build`      | Production build to `build/`           |
+| `npm run start`      | Watch mode with hot module replacement |
+| `npm run lint:js`    | Lint JavaScript source                 |
+| `npm run lint:style` | Lint SCSS source                       |
