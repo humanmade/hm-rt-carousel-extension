@@ -1,0 +1,8 @@
+// Hide the rt-carousel plugin's "Layout" panel (Slide Gap px RangeControl). Our
+// SelectControl panel always renders immediately after it in the DOM, so we use
+// the adjacent-sibling :has() to target it without touching the plugin's files.
+.components-panel__body:has( .components-range-control ):has(
+		+ .hm-rt-carousel-extension-slide-gap-panel
+	) {
+	display: none;
+}

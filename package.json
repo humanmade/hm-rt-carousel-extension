@@ -1,0 +1,16 @@
+{
+	"name": "hm-rt-carousel-extension",
+	"description": "Carousel block extensions and editor enhancements.",
+	"author": "Human Made Limited",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start --hot",
+		"lint:js": "wp-scripts lint-js src",
+		"lint:style": "wp-scripts lint-style src"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^31.6.0",
+		"block-editor-hmr": "^1.0"
+	}
+}

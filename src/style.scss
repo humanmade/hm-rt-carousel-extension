@@ -1,0 +1,19 @@
+.wp-block-rt-carousel-carousel {
+	--wp--style--block-gap: 1.5rem;
+
+	> * + * {
+		margin-block-start: var(--wp--style--block-gap);
+	}
+
+	.wp-block-post-template.columns-2 {
+		--rt-carousel-slide-width: calc(50% - var(--rt-carousel-gap, 0) / 2) !important;
+	}
+
+	.wp-block-post-template.columns-3 {
+		--rt-carousel-slide-width: calc(33.333% - (var(--rt-carousel-gap, 0) * 2 / 3)) !important;
+	}
+
+	.wp-block-post-template.columns-4 {
+		--rt-carousel-slide-width: calc(25% - (var(--rt-carousel-gap, 0) * 3 / 4)) !important;
+	}
+}
