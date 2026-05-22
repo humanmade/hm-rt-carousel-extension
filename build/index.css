@@ -1,0 +1,1 @@
+.components-panel__body:has(.components-range-control):has(+.hm-rt-carousel-extension-slide-gap-panel){display:none}
