@@ -149,6 +149,7 @@ function extend_carousel_controls_supports( array $metadata ): array {
 		$metadata['supports']['spacing'] ?? [],
 		[
 			'margin'   => [ 'top', 'bottom' ],
+			'padding'  => [ 'top', 'bottom' ],
 			'blockGap' => true,
 		]
 	);
@@ -157,7 +158,6 @@ function extend_carousel_controls_supports( array $metadata ): array {
 		'allowSwitching'         => false,
 		'allowInheriting'        => false,
 		'allowOrientation'       => false,
-		'allowVerticalAlignment' => false,
 		'default'                => [ 'type' => 'flex' ],
 	];
 

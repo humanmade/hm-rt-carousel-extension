@@ -20,7 +20,7 @@ Adds editor supports not included in rt-carousel by default:
 
 ### Slide gap preset picker
 
-Replaces the plugin's pixel-based slide gap range control with a `SelectControl` that maps to theme spacing presets (e.g. `sm-16`, `md-40`). On the frontend, the chosen preset is rendered as a `var(--wp--preset--spacing--*)` CSS variable rather than a fixed pixel value, giving responsive spacing for free.
+Replaces the plugin's pixel-based slide gap range control with a `SelectControl` that maps to theme spacing presets. On the frontend, the chosen preset is rendered as a `var(--wp--preset--spacing--*)` CSS variable rather than a fixed pixel value, giving responsive spacing for free.
 
 ### Frontend styles
 
