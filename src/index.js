@@ -4,7 +4,6 @@ import { addFilter } from '@wordpress/hooks';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { InspectorControls, useSettings } from '@wordpress/block-editor';
 import { PanelBody, SelectControl } from '@wordpress/components';
-import { useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 const BLOCK_NAME = 'rt-carousel/carousel';
@@ -17,7 +16,7 @@ const BLOCK_NAME = 'rt-carousel/carousel';
  * @param {Function} props.setAttributes Block attribute setter.
  */
 const SlideGapControl = ( { attributes, setAttributes } ) => {
-	const { slideGap, slideGapSlug } = attributes;
+	const { slideGapSlug } = attributes;
 
 	const [ spacingSizes ] = useSettings( 'spacing.spacingSizes' );
 
@@ -29,26 +28,12 @@ const SlideGapControl = ( { attributes, setAttributes } ) => {
 		} ) ),
 	];
 
-	// When the RangeControl changes slideGap to a value that no longer matches the
-	// selected preset, clear the preset so the frontend uses the raw px value.
-	useEffect( () => {
-		if ( ! slideGapSlug ) {
-			return;
-		}
-		const expectedPx = parseInt( slideGapSlug.split( '-' ).pop(), 10 ) || 0;
-		if ( slideGap !== expectedPx ) {
-			setAttributes( { slideGapSlug: '' } );
-		}
-	}, [ slideGap, slideGapSlug, setAttributes ] );
-
 	const handleChange = ( slug ) => {
 		if ( ! slug ) {
-			setAttributes( { slideGapSlug: '', slideGap: 0 } );
+			setAttributes( { slideGapSlug: '' } );
 			return;
 		}
-		// The pixel value in the slug (e.g. "sm-16" → 16) gives a close editor preview.
-		const px = parseInt( slug.split( '-' ).pop(), 10 ) || 0;
-		setAttributes( { slideGapSlug: slug, slideGap: px } );
+		setAttributes( { slideGapSlug: slug } );
 	};
 
 	return (
