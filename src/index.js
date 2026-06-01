@@ -2,9 +2,12 @@ import './editor.scss';
 
 import { addFilter } from '@wordpress/hooks';
 import { createHigherOrderComponent } from '@wordpress/compose';
-import { InspectorControls, useSettings } from '@wordpress/block-editor';
+import {
+	InspectorControls,
+	useSettings,
+	getSpacingPresetCssVar,
+} from '@wordpress/block-editor';
 import { PanelBody, SelectControl } from '@wordpress/components';
-import { useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 const BLOCK_NAME = 'rt-carousel/carousel';
@@ -16,53 +19,39 @@ const BLOCK_NAME = 'rt-carousel/carousel';
  * @param {Object}   props.attributes    Block attributes.
  * @param {Function} props.setAttributes Block attribute setter.
  */
-const SlideGapControl = ({ attributes, setAttributes }) => {
-	const { slideGap, slideGapSlug } = attributes;
+const SlideGapControl = ( { attributes, setAttributes } ) => {
+	const { slideGapSlug } = attributes;
 
-	const [spacingSizes] = useSettings('spacing.spacingSizes');
+	const [ spacingSizes ] = useSettings( 'spacing.spacingSizes' );
 
 	const options = [
-		{ label: __('None', 'hm-rt-carousel-extension'), value: '' },
-		...(spacingSizes || []).map((size) => ({
+		{ label: __( 'None', 'hm-rt-carousel-extension' ), value: '' },
+		...( spacingSizes || [] ).map( ( size ) => ( {
 			label: size.name,
 			value: size.slug,
-		})),
+		} ) ),
 	];
 
-	// When the RangeControl changes slideGap to a value that no longer matches the
-	// selected preset, clear the preset so the frontend uses the raw px value.
-	useEffect(() => {
-		if (!slideGapSlug) {
+	const handleChange = ( slug ) => {
+		if ( ! slug ) {
+			setAttributes( { slideGapSlug: '' } );
 			return;
 		}
-		const expectedPx = parseInt(slideGapSlug.split('-').pop(), 10) || 0;
-		if (slideGap !== expectedPx) {
-			setAttributes({ slideGapSlug: '' });
-		}
-	}, [slideGap, slideGapSlug, setAttributes]);
-
-	const handleChange = (slug) => {
-		if (!slug) {
-			setAttributes({ slideGapSlug: '', slideGap: 0 });
-			return;
-		}
-		// The pixel value in the slug (e.g. "sm-16" → 16) gives a close editor preview.
-		const px = parseInt(slug.split('-').pop(), 10) || 0;
-		setAttributes({ slideGapSlug: slug, slideGap: px });
+		setAttributes( { slideGapSlug: slug } );
 	};
 
 	return (
 		<InspectorControls group="styles">
 			<PanelBody
-				title={__('Slide Gap', 'hm-rt-carousel-extension')}
+				title={ __( 'Slide Gap', 'hm-rt-carousel-extension' ) }
 				className="hm-rt-carousel-extension-slide-gap-panel"
 			>
 				<SelectControl
-					label={__('Spacing size', 'hm-rt-carousel-extension')}
+					label={ __( 'Spacing size', 'hm-rt-carousel-extension' ) }
 					hideLabelFromVision
-					value={slideGapSlug}
-					options={options}
-					onChange={handleChange}
+					value={ slideGapSlug }
+					options={ options }
+					onChange={ handleChange }
 					__next40pxDefaultSize
 				/>
 			</PanelBody>
@@ -73,22 +62,22 @@ const SlideGapControl = ({ attributes, setAttributes }) => {
 /**
  * HOC that injects SlideGapControl into the rt-carousel/carousel inspector panel.
  */
-const withSlideGapControl = createHigherOrderComponent((BlockEdit) => {
-	return (props) => {
-		if (props.name !== BLOCK_NAME) {
-			return <BlockEdit {...props} />;
+const withSlideGapControl = createHigherOrderComponent( ( BlockEdit ) => {
+	return ( props ) => {
+		if ( props.name !== BLOCK_NAME ) {
+			return <BlockEdit { ...props } />;
 		}
 		return (
 			<>
-				<BlockEdit {...props} />
+				<BlockEdit { ...props } />
 				<SlideGapControl
-					attributes={props.attributes}
-					setAttributes={props.setAttributes}
+					attributes={ props.attributes }
+					setAttributes={ props.setAttributes }
 				/>
 			</>
 		);
 	};
-}, 'withSlideGapControl');
+}, 'withSlideGapControl' );
 
 /**
  * Adds the slideGapSlug attribute to rt-carousel/carousel block type settings.
@@ -97,8 +86,8 @@ const withSlideGapControl = createHigherOrderComponent((BlockEdit) => {
  * @param {string} name     Block name.
  * @return {Object} Modified settings.
  */
-const setCarouselAttributes = (settings, name) => {
-	if (name !== BLOCK_NAME) {
+const setCarouselAttributes = ( settings, name ) => {
+	if ( name !== BLOCK_NAME ) {
 		return settings;
 	}
 	return {
@@ -124,7 +113,7 @@ const CONTROLS_BLOCK_NAME = 'rt-carousel/carousel-controls';
  * @param {Object} attributes Block attributes.
  * @return {Object} Modified props.
  */
-const addCarouselStylesProps = (props, blockType, attributes) => {
+const addCarouselStylesProps = ( props, blockType, attributes ) => {
 	if (
 		blockType.name !== CONTROLS_BLOCK_NAME &&
 		blockType.name !== BLOCK_NAME
@@ -133,13 +122,11 @@ const addCarouselStylesProps = (props, blockType, attributes) => {
 	}
 
 	const blockGap = attributes?.style?.spacing?.blockGap;
-	if (!blockGap) {
+	if ( ! blockGap ) {
 		return props;
 	}
 
-	const cssValue = blockGap.startsWith('var:preset|spacing|')
-		? `var(--wp--preset--spacing--${blockGap.replace('var:preset|spacing|', '')})`
-		: blockGap;
+	const cssValue = getSpacingPresetCssVar( blockGap ) ?? blockGap;
 
 	return {
 		...props,
@@ -157,43 +144,58 @@ const justifyMap = {
 	'space-between': 'space-between',
 };
 
+const verticalAlignMap = {
+	top: 'flex-start',
+	center: 'center',
+	bottom: 'flex-end',
+	stretch: 'stretch',
+};
+
 /**
  * HOC that forwards blockGap and layout justification as CSS custom properties
  * on the editor block wrapper.
  */
 const withCarouselStyles = createHigherOrderComponent(
-	(BlockListBlock) => (props) => {
-		if (props.name !== CONTROLS_BLOCK_NAME && props.name !== BLOCK_NAME) {
-			return <BlockListBlock {...props} />;
+	( BlockListBlock ) => ( props ) => {
+		if ( props.name !== CONTROLS_BLOCK_NAME && props.name !== BLOCK_NAME ) {
+			return <BlockListBlock { ...props } />;
 		}
 
 		const blockGap = props.attributes?.style?.spacing?.blockGap;
 		const justifyContent =
-			justifyMap[props.attributes?.layout?.justifyContent];
+			justifyMap[ props.attributes?.layout?.justifyContent ];
+		const verticalAlignment =
+			verticalAlignMap[ props.attributes?.layout?.verticalAlignment ];
 
-		if (!blockGap && !justifyContent) {
-			return <BlockListBlock {...props} />;
+		if ( ! blockGap && ! justifyContent && ! verticalAlignment ) {
+			return <BlockListBlock { ...props } />;
 		}
 
-		const gapCssValue = blockGap?.startsWith('var:preset|spacing|')
-			? `var(--wp--preset--spacing--${blockGap.replace('var:preset|spacing|', '')})`
-			: blockGap;
+		const gapCssValue = getSpacingPresetCssVar( blockGap ) ?? blockGap;
 
 		return (
 			<BlockListBlock
-				{...props}
-				wrapperProps={{
+				{ ...props }
+				wrapperProps={ {
 					...props.wrapperProps,
+					className: justifyContent
+						? `is-content-justification-${ justifyContent }`
+						: '',
 					style: {
 						...props.wrapperProps?.style,
-						...(gapCssValue && {
+						...( gapCssValue && {
 							'--wp--style--block-gap': gapCssValue,
-						}),
-						...(justifyContent && {
-							'--hm-rt-carousel-extension-controls-justify': justifyContent,
-						}),
+						} ),
+						...( justifyContent && {
+							'--hm-rt-carousel-extension-controls-justify':
+								justifyContent,
+						} ),
+						...( verticalAlignment && {
+							'--hm-rt-carousel-extension-controls-align':
+								verticalAlignment,
+						} ),
 					},
-				}}
+				} }
 			/>
 		);
 	},
@@ -223,13 +225,13 @@ const filters = [
 	},
 ];
 
-filters.forEach(({ hook, namespace, callback }) => {
-	addFilter(hook, namespace, callback);
-});
+filters.forEach( ( { hook, namespace, callback } ) => {
+	addFilter( hook, namespace, callback );
+} );
 
-if (module.hot) {
+if ( module.hot ) {
 	module.hot.accept();
-	const { deregisterBlock, refreshEditor } = require('block-editor-hmr');
-	module.hot.dispose(deregisterBlock('', { filters }));
+	const { deregisterBlock, refreshEditor } = require( 'block-editor-hmr' );
+	module.hot.dispose( deregisterBlock( '', { filters } ) );
 	refreshEditor();
 }
