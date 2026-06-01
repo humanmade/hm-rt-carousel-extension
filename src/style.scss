@@ -24,8 +24,18 @@
 		) !important;
 	}
 
+	@container carousel ( width < 60rem ) {
+		.wp-block-post-template.is-layout-grid {
+			// Drop to two columns.
+			--rt-carousel-slide-width: calc(
+				50% - var( --rt-carousel-gap, 0 ) / 2
+			) !important;
+		}
+	}
+
 	@container carousel ( width < 35rem ) {
 		.wp-block-post-template.is-layout-grid {
+			// Drop to one column.
 			--rt-carousel-slide-width: 100% !important;
 		}
 	}
