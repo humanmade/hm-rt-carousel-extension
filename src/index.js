@@ -2,7 +2,11 @@ import './editor.scss';
 
 import { addFilter } from '@wordpress/hooks';
 import { createHigherOrderComponent } from '@wordpress/compose';
-import { InspectorControls, useSettings } from '@wordpress/block-editor';
+import {
+	InspectorControls,
+	useSettings,
+	getSpacingPresetCssVar,
+} from '@wordpress/block-editor';
 import { PanelBody, SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
@@ -122,12 +126,7 @@ const addCarouselStylesProps = ( props, blockType, attributes ) => {
 		return props;
 	}
 
-	const cssValue = blockGap.startsWith( 'var:preset|spacing|' )
-		? `var(--wp--preset--spacing--${ blockGap.replace(
-				'var:preset|spacing|',
-				''
-		  ) })`
-		: blockGap;
+	const cssValue = getSpacingPresetCssVar( blockGap ) ?? blockGap;
 
 	return {
 		...props,
@@ -172,12 +171,7 @@ const withCarouselStyles = createHigherOrderComponent(
 			return <BlockListBlock { ...props } />;
 		}
 
-		const gapCssValue = blockGap?.startsWith( 'var:preset|spacing|' )
-			? `var(--wp--preset--spacing--${ blockGap.replace(
-					'var:preset|spacing|',
-					''
-			  ) })`
-			: blockGap;
+		const gapCssValue = getSpacingPresetCssVar( blockGap ) ?? blockGap;
 
 		return (
 			<BlockListBlock
