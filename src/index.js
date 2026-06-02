@@ -121,18 +121,35 @@ const addCarouselStylesProps = ( props, blockType, attributes ) => {
 		return props;
 	}
 
+	const extraStyles = {};
+
 	const blockGap = attributes?.style?.spacing?.blockGap;
-	if ( ! blockGap ) {
-		return props;
+	if ( blockGap ) {
+		extraStyles[ '--wp--style--block-gap' ] =
+			getSpacingPresetCssVar( blockGap ) ?? blockGap;
 	}
 
-	const cssValue = getSpacingPresetCssVar( blockGap ) ?? blockGap;
+	if ( blockType.name === CONTROLS_BLOCK_NAME ) {
+		const layoutAlign = attributes?.layout?.verticalAlignment;
+		const customAlign = attributes?.controlsVerticalAlign;
+		const align = customAlign || layoutAlign;
+		if ( align && verticalAlignMap[ align ] ) {
+			extraStyles[ '--hm-rt-carousel-extension-controls-align' ] =
+				verticalAlignMap[ align ];
+			extraStyles[ '--hm-rt-carousel-extension-controls-padding-top' ] =
+				paddingTopMap[ align ] ?? '0';
+		}
+	}
+
+	if ( ! Object.keys( extraStyles ).length ) {
+		return props;
+	}
 
 	return {
 		...props,
 		style: {
 			...props.style,
-			'--wp--style--block-gap': cssValue,
+			...extraStyles,
 		},
 	};
 };
@@ -151,6 +168,88 @@ const verticalAlignMap = {
 	stretch: 'stretch',
 };
 
+const paddingTopMap = {
+	top: '12%',
+	center: '0',
+	bottom: '0',
+	stretch: '0',
+};
+
+/**
+ * Inspector control for selecting the vertical alignment of carousel controls.
+ * Provides a UI for themes that disable the built-in layout verticalAlignment control.
+ *
+ * @param {Object}   props
+ * @param {Object}   props.attributes    Block attributes.
+ * @param {Function} props.setAttributes Block attribute setter.
+ */
+const VerticalAlignControl = ( { attributes, setAttributes } ) => {
+	const { controlsVerticalAlign } = attributes;
+
+	const options = [
+		{ label: __( 'Default', 'hm-rt-carousel-extension' ), value: '' },
+		{ label: __( 'Center', 'hm-rt-carousel-extension' ), value: 'center' },
+		{ label: __( 'Bottom', 'hm-rt-carousel-extension' ), value: 'bottom' },
+	];
+
+	return (
+		<InspectorControls group="styles">
+			<PanelBody title={ __( 'Controls Alignment', 'hm-rt-carousel-extension' ) }>
+				<SelectControl
+					label={ __( 'Vertical alignment', 'hm-rt-carousel-extension' ) }
+					value={ controlsVerticalAlign || '' }
+					options={ options }
+					onChange={ ( value ) => setAttributes( { controlsVerticalAlign: value } ) }
+					__next40pxDefaultSize
+				/>
+			</PanelBody>
+		</InspectorControls>
+	);
+};
+
+/**
+ * HOC that injects VerticalAlignControl into the rt-carousel/carousel-controls inspector panel.
+ */
+const withVerticalAlignControl = createHigherOrderComponent( ( BlockEdit ) => {
+	return ( props ) => {
+		if ( props.name !== CONTROLS_BLOCK_NAME ) {
+			return <BlockEdit { ...props } />;
+		}
+		return (
+			<>
+				<BlockEdit { ...props } />
+				<VerticalAlignControl
+					attributes={ props.attributes }
+					setAttributes={ props.setAttributes }
+				/>
+			</>
+		);
+	};
+}, 'withVerticalAlignControl' );
+
+/**
+ * Adds the controlsVerticalAlign attribute to rt-carousel/carousel-controls block type settings.
+ *
+ * @param {Object} settings Block type settings.
+ * @param {string} name     Block name.
+ * @return {Object} Modified settings.
+ */
+const setControlsAttributes = ( settings, name ) => {
+	if ( name !== CONTROLS_BLOCK_NAME ) {
+		return settings;
+	}
+	return {
+		...settings,
+		attributes: {
+			...settings.attributes,
+			controlsVerticalAlign: {
+				type: 'string',
+				default: '',
+			},
+		},
+	};
+};
+
 /**
  * HOC that forwards blockGap and layout justification as CSS custom properties
  * on the editor block wrapper.
@@ -164,8 +263,17 @@ const withCarouselStyles = createHigherOrderComponent(
 		const blockGap = props.attributes?.style?.spacing?.blockGap;
 		const justifyContent =
 			justifyMap[ props.attributes?.layout?.justifyContent ];
-		const verticalAlignment =
+		const layoutAlign =
 			verticalAlignMap[ props.attributes?.layout?.verticalAlignment ];
+		const customAlign = props.name === CONTROLS_BLOCK_NAME
+			? props.attributes?.controlsVerticalAlign
+			: null;
+		const verticalAlignment = customAlign
+			? verticalAlignMap[ customAlign ]
+			: layoutAlign;
+		const paddingTop = customAlign
+			? paddingTopMap[ customAlign ]
+			: paddingTopMap[ props.attributes?.layout?.verticalAlignment ];
 
 		if ( ! blockGap && ! justifyContent && ! verticalAlignment ) {
 			return <BlockListBlock { ...props } />;
@@ -193,6 +301,10 @@ const withCarouselStyles = createHigherOrderComponent(
 						...( verticalAlignment && {
 							'--hm-rt-carousel-extension-controls-align':
 								verticalAlignment,
+						} ),
+						...( paddingTop !== undefined && {
+							'--hm-rt-carousel-extension-controls-padding-top':
+								paddingTop,
 						} ),
 					},
 				} }
@@ -222,6 +334,16 @@ const filters = [
 		hook: 'editor.BlockEdit',
 		namespace: 'hm-rt-carousel-extension/carousel-slide-gap-control',
 		callback: withSlideGapControl,
+	},
+	{
+		hook: 'blocks.registerBlockType',
+		namespace: 'hm-rt-carousel-extension/controls-vertical-align-attribute',
+		callback: setControlsAttributes,
+	},
+	{
+		hook: 'editor.BlockEdit',
+		namespace: 'hm-rt-carousel-extension/controls-vertical-align-control',
+		callback: withVerticalAlignControl,
 	},
 ];
 
