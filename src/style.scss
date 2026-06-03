@@ -41,6 +41,18 @@
 	}
 }
 
+// Accordion items used as carousel navigation with an empty panel:
+// hide the expand icon and keep the panel permanently hidden.
+.wp-block-accordion-item[data-carousel-nav-only] {
+	.wp-block-accordion-heading__toggle-icon {
+		display: none;
+	}
+
+	.wp-block-accordion-panel {
+		display: none !important;
+	}
+}
+
 .wp-block-rt-carousel-carousel-controls {
 	&,
 	&.is-layout-flex {
