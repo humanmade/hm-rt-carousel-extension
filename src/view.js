@@ -3,6 +3,11 @@ import { store, getContext, getElement } from '@wordpress/interactivity';
 const CAROUSEL_SYMBOL = Symbol.for( 'rt-carousel.carousel' );
 const ACTIVE_CLASS = 'is-active';
 
+// Set to true while syncActiveAccordionItem is programmatically clicking
+// accordion toggle buttons so the heading's navigate action ignores those
+// synthetic clicks and doesn't jump the carousel back to the section start.
+let isSyncingAccordion = false;
+
 /**
  * Per-carousel map of section boundaries built during DOM combining.
  * Key: .rt-carousel element
@@ -110,6 +115,21 @@ function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
 			const target = item.dataset.carouselTarget;
 			const active = target ? target === sectionId : i === sectionIdx;
 			item.classList.toggle( ACTIVE_CLASS, active );
+
+			if ( item.hasAttribute( 'data-carousel-nav-only' ) ) {
+				return;
+			}
+			const button = item.querySelector(
+				'.wp-block-accordion-heading__toggle'
+			);
+			if (
+				button &&
+				active !== ( button.getAttribute( 'aria-expanded' ) === 'true' )
+			) {
+				isSyncingAccordion = true;
+				button.click();
+				isSyncingAccordion = false;
+			}
 		} );
 }
 
@@ -175,6 +195,10 @@ store( 'hm-carousel-accordion', {
 		 * that is matched against each section's data-carousel-section value.
 		 */
 		navigate() {
+			if ( isSyncingAccordion ) {
+				return;
+			}
+
 			const { ref } = getElement(); // ref is the heading element (h3, h4, …)
 
 			const carouselEl = ref.closest( '.rt-carousel' );
