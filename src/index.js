@@ -320,7 +320,10 @@ const AccordionCarouselNavInspector = ( {
 					}
 					checked={ carouselSectionAuto }
 					onChange={ ( value ) =>
-						setAttributes( { carouselSectionAuto: value } )
+						setAttributes( {
+							carouselSectionAuto: value,
+							...( value && { carouselSection: '' } ),
+						} )
 					}
 					__nextHasNoMarginBottom
 				/>
