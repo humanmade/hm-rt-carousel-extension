@@ -36,6 +36,8 @@ Enables a `core/accordion` block placed alongside the carousel viewport to act a
 
 Each post slide carries a `data-carousel-section` attribute (category slug) after combining. The accordion heading click is handled by an Interactivity API store (`hm-carousel-accordion`) that resolves the correct slide index and calls Embla's `scrollTo`.
 
+The active accordion item (the one whose section is currently in view) receives an `is-active` class on its `.wp-block-accordion-item` element. This is updated both on heading click and whenever the carousel position changes (e.g. via prev/next controls). Use `.wp-block-accordion-item.is-active` to style the active state.
+
 ### Frontend styles
 
 Registers a stylesheet for `rt-carousel/carousel` that is only loaded when the block is present on the page. It sets a default `--wp--style--block-gap` and provides `--rt-carousel-slide-width` calculations for 2-, 3-, and 4-column post template layouts.
