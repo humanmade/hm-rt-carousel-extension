@@ -270,7 +270,7 @@ function register_carousel_accordion_module(): void {
  * Recursively search a block tree for a core/accordion that is a descendant
  * of an rt-carousel/carousel block.
  *
- * @param array $blocks     Parsed block list to search.
+ * @param array $blocks      Parsed block list to search.
  * @param bool  $in_carousel Whether the current walk is already inside a carousel.
  * @return bool True when the pattern is found.
  */

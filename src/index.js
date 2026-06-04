@@ -208,6 +208,26 @@ const CAROUSEL_VIEWPORT_BLOCK = 'rt-carousel/carousel-viewport';
 const QUERY_BLOCK = 'core/query';
 
 /**
+ * Recursively find the first block with a given name within a block list.
+ *
+ * @param {Array}  blocks Block list to search.
+ * @param {string} name   Block name to find.
+ * @return {Object|undefined} Matched block or undefined.
+ */
+const findBlock = ( blocks = [], name ) => {
+	for ( const block of blocks ) {
+		if ( block.name === name ) {
+			return block;
+		}
+		const found = findBlock( block.innerBlocks, name );
+		if ( found ) {
+			return found;
+		}
+	}
+	return undefined;
+};
+
+/**
  * Inspector panel rendered inside a core/accordion-item that lives inside a
  * carousel. Shows an auto/manual toggle and a category selector.
  *
@@ -246,8 +266,9 @@ const AccordionCarouselNavInspector = ( {
 		[ clientId ]
 	);
 
-	const viewport = carouselBlock?.innerBlocks?.find(
-		( b ) => b.name === CAROUSEL_VIEWPORT_BLOCK
+	const viewport = findBlock(
+		carouselBlock?.innerBlocks,
+		CAROUSEL_VIEWPORT_BLOCK
 	);
 	const queryLoops = ( viewport?.innerBlocks ?? [] ).filter(
 		( b ) => b.name === QUERY_BLOCK
