@@ -6,26 +6,32 @@
 		margin-block-start: var( --wp--style--block-gap );
 	}
 
-	.wp-block-post-template.columns-2 {
+	.wp-block-post-template.columns-2,
+	&.is-style-columns-2 {
 		--rt-carousel-slide-width: calc(
 			50% - var( --rt-carousel-gap, 0 ) / 2
 		) !important;
 	}
 
-	.wp-block-post-template.columns-3 {
+	.wp-block-post-template.columns-3,
+	&.is-style-columns-3 {
 		--rt-carousel-slide-width: calc(
 			33.333% - ( var( --rt-carousel-gap, 0 ) * 2 / 3 )
 		) !important;
 	}
 
-	.wp-block-post-template.columns-4 {
+	.wp-block-post-template.columns-4,
+	&.is-style-columns-4 {
 		--rt-carousel-slide-width: calc(
 			25% - ( var( --rt-carousel-gap, 0 ) * 3 / 4 )
 		) !important;
 	}
 
 	@container carousel ( width < 60rem ) {
-		.wp-block-post-template.is-layout-grid {
+		.wp-block-post-template.is-layout-grid,
+		&.is-style-columns-2 .wp-block-rt-carousel-carousel-viewport
+		&.is-style-columns-3 .wp-block-rt-carousel-carousel-viewport,
+		&.is-style-columns-4 .wp-block-rt-carousel-carousel-viewport {
 			// Drop to two columns.
 			--rt-carousel-slide-width: calc(
 				50% - var( --rt-carousel-gap, 0 ) / 2
@@ -34,7 +40,10 @@
 	}
 
 	@container carousel ( width < 35rem ) {
-		.wp-block-post-template.is-layout-grid {
+		.wp-block-post-template.is-layout-grid,
+		&.is-style-columns-2 .wp-block-rt-carousel-carousel-viewport
+		&.is-style-columns-3 .wp-block-rt-carousel-carousel-viewport,
+		&.is-style-columns-4 .wp-block-rt-carousel-carousel-viewport {
 			// Drop to one column.
 			--rt-carousel-slide-width: 100% !important;
 		}
