@@ -21,6 +21,15 @@ let isSyncingAccordion = false;
 const carouselSectionMap = new Map();
 
 /**
+ * Per-carousel map of panel container elements.
+ * Key: .rt-carousel element
+ * Value: <div class="hm-carousel-accordion-panel-container"> element
+ *
+ * @type {Map<HTMLElement, HTMLElement>}
+ */
+const panelContainerMap = new Map();
+
+/**
  * Merge posts from multiple query-loop sections into the first post-template
  * so Embla sees a single continuous slide list.
  *
@@ -79,6 +88,58 @@ function initCarouselSections( carouselEl ) {
 }
 
 /**
+ * Copy the active accordion item's panel content into the panel container.
+ * Clears the container for nav-only items (which have no meaningful panel).
+ *
+ * @param {HTMLElement} carouselEl   The .rt-carousel root element.
+ * @param {HTMLElement} activeItemEl The active .wp-block-accordion-item element.
+ */
+function updatePanelContainer( carouselEl, activeItemEl ) {
+	const container = panelContainerMap.get( carouselEl );
+	if ( ! container ) {
+		return;
+	}
+	if ( activeItemEl.hasAttribute( 'data-carousel-nav-only' ) ) {
+		container.innerHTML = '';
+		return;
+	}
+	const panel = activeItemEl.querySelector( '.wp-block-accordion-panel' );
+	if ( panel ) {
+		container.innerHTML = panel.innerHTML;
+	}
+}
+
+/**
+ * Create the panel container element and insert it after the accordion block.
+ * Populates it immediately with the first non-nav-only accordion item's panel.
+ *
+ * @param {HTMLElement} carouselEl The .rt-carousel root element.
+ */
+function initAccordionPanelContainer( carouselEl ) {
+	const accordion = carouselEl.querySelector( '.wp-block-accordion' );
+	if ( ! accordion ) {
+		return;
+	}
+
+	const container = document.createElement( 'div' );
+	container.className =
+		'hm-carousel-accordion-panel-container is-layout-flow';
+	accordion.after( container );
+	panelContainerMap.set( carouselEl, container );
+
+	const items = [
+		...carouselEl.querySelectorAll( '.wp-block-accordion-item' ),
+	];
+	const initialItem = items.find(
+		( el ) => ! el.hasAttribute( 'data-carousel-nav-only' )
+	);
+	if ( initialItem ) {
+		initialItem.classList.add( ACTIVE_CLASS );
+		updatePanelContainer( carouselEl, initialItem );
+	}
+}
+
+/**
  * Resolve the Embla instance from any element inside a .rt-carousel.
  *
  * @param {HTMLElement} el
@@ -109,12 +170,18 @@ function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
 	}
 	const sectionId = boundaries[ sectionIdx ]?.id;
 
+	let activeItem = null;
+
 	carouselEl
 		.querySelectorAll( '.wp-block-accordion-item' )
 		.forEach( ( item, i ) => {
 			const target = item.dataset.carouselTarget;
 			const active = target ? target === sectionId : i === sectionIdx;
 			item.classList.toggle( ACTIVE_CLASS, active );
+
+			if ( active ) {
+				activeItem = item;
+			}
 
 			if ( item.hasAttribute( 'data-carousel-nav-only' ) ) {
 				return;
@@ -131,6 +198,10 @@ function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
 				isSyncingAccordion = false;
 			}
 		} );
+
+	if ( activeItem ) {
+		updatePanelContainer( carouselEl, activeItem );
+	}
 }
 
 /**
@@ -233,8 +304,9 @@ store( 'hm-carousel-accordion', {
 				return;
 			}
 
-			// Optimistically apply the active class before Embla's select event
-			// fires so the UI updates instantly on click.
+			// Optimistically apply the active class and update the panel
+			// container before Embla's select event fires so the UI updates
+			// instantly on click.
 			const itemEl = ref.closest( '.wp-block-accordion-item' );
 			if ( itemEl ) {
 				carouselEl
@@ -242,6 +314,7 @@ store( 'hm-carousel-accordion', {
 					.forEach( ( item ) =>
 						item.classList.toggle( ACTIVE_CLASS, item === itemEl )
 					);
+				updatePanelContainer( carouselEl, itemEl );
 			}
 
 			// For nav-only items the panel never opens; the heading click only
@@ -259,6 +332,7 @@ store( 'hm-carousel-accordion', {
 function onDomReady() {
 	document.querySelectorAll( '.rt-carousel' ).forEach( ( carouselEl ) => {
 		initCarouselSections( carouselEl );
+		initAccordionPanelContainer( carouselEl );
 		initAccordionActiveState( carouselEl );
 	} );
 }

@@ -38,6 +38,10 @@ Each post slide carries a `data-carousel-section` attribute (category slug) afte
 
 The active accordion item (the one whose section is currently in view) receives an `is-active` class on its `.wp-block-accordion-item` element. This is updated both on heading click and whenever the carousel position changes (e.g. via prev/next controls). Use `.wp-block-accordion-item.is-active` to style the active state.
 
+A `<div class="hm-carousel-accordion-panel-container">` is also inserted after the accordion block. It receives a copy of the active accordion item's panel content and updates whenever the active item changes. This is intended for mobile layouts where the inline accordion panels are hidden and the container is shown instead — giving a tab-panel appearance. Apply CSS at your breakpoint to hide `.wp-block-accordion-panel` and show `.hm-carousel-accordion-panel-container`.
+
+The plugin includes built-in styles for a tabbed accordion layout where the accordion and carousel viewport are placed in separate columns inside a `core/columns` block. Below 782px (the point at which columns stack), the accordion items are displayed as a flex-wrapped row of tab buttons, the inline panels are hidden, and the panel container is shown beneath them.
+
 ### Frontend styles
 
 Registers a stylesheet for `rt-carousel/carousel` that is only loaded when the block is present on the page. It sets a default `--wp--style--block-gap` and provides `--rt-carousel-slide-width` calculations for 2-, 3-, and 4-column post template layouts.
