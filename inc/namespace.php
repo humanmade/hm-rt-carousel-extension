@@ -256,7 +256,7 @@ function register_carousel_accordion_module(): void {
 		return;
 	}
 
-	$asset = require $asset_file;
+	$asset = require $asset_file; // phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable -- path is constructed from a plugin constant and validated with file_exists().
 
 	wp_register_script_module(
 		'@hm/carousel-accordion-view',
