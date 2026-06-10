@@ -1,7 +1,6 @@
 import { store, getContext, getElement } from '@wordpress/interactivity';
 
 const CAROUSEL_SYMBOL = Symbol.for( 'rt-carousel.carousel' );
-const ACTIVE_CLASS = 'is-active';
 
 // Set to true while syncActiveAccordionItem is programmatically clicking
 // accordion toggle buttons so the heading's navigate action ignores those
@@ -30,13 +29,21 @@ const carouselSectionMap = new Map();
 const panelContainerMap = new Map();
 
 /**
+ * Per-carousel map of the currently active accordion item element.
+ * Used to close the previous item explicitly and skip redundant syncs.
+ *
+ * @type {Map<HTMLElement, HTMLElement|null>}
+ */
+const activeItemMap = new Map();
+
+/**
  * Merge posts from multiple query-loop sections into the first post-template
  * so Embla sees a single continuous slide list.
  *
  * Records section start indices into carouselSectionMap before restructuring
  * the DOM so the navigate action can still resolve correct slide offsets.
  *
- * @param {HTMLElement} carouselEl - The .rt-carousel root element.
+ * @param {HTMLElement} carouselEl The .rt-carousel root element.
  */
 function initCarouselSections( carouselEl ) {
 	const sections = [
@@ -134,7 +141,6 @@ function initAccordionPanelContainer( carouselEl ) {
 		( el ) => ! el.hasAttribute( 'data-carousel-nav-only' )
 	);
 	if ( initialItem ) {
-		initialItem.classList.add( ACTIVE_CLASS );
 		updatePanelContainer( carouselEl, initialItem );
 	}
 }
@@ -143,7 +149,7 @@ function initAccordionPanelContainer( carouselEl ) {
  * Resolve the Embla instance from any element inside a .rt-carousel.
  *
  * @param {HTMLElement} el
- * @return {object|null} Embla API or null.
+ * @return {Object|null} Embla API or null.
  */
 function getEmbla( el ) {
 	const emblaEl = el.closest( '.rt-carousel' )?.querySelector( '.embla' );
@@ -151,15 +157,46 @@ function getEmbla( el ) {
 }
 
 /**
- * Adds ACTIVE_CLASS to the accordion item matching the current carousel
- * section and removes it from all others.
+ * Open or close an accordion item.
  *
- * Supports auto mode (index-based) and manual mode (data-carousel-target
- * attribute set by the PHP render filter).
+ * Sets is-open directly on the element for instant visual feedback (including
+ * nav-only items which have no button). For regular items, also clicks the
+ * toggle button so the Interactivity API's panel inert binding and
+ * aria-expanded attribute stay accurate. The API's own async class update
+ * becomes a no-op since we set is-open synchronously first.
+ *
+ * @param {HTMLElement} item       The .wp-block-accordion-item element.
+ * @param {boolean}     shouldOpen True to open, false to close.
+ */
+function setAccordionItemOpen( item, shouldOpen ) {
+	item.classList.toggle( 'is-open', shouldOpen );
+
+	if ( item.hasAttribute( 'data-carousel-nav-only' ) ) {
+		return;
+	}
+
+	const button = item.querySelector( '.wp-block-accordion-heading__toggle' );
+	if ( ! button ) {
+		return;
+	}
+	const isCurrentlyOpen = button.getAttribute( 'aria-expanded' ) === 'true';
+	if ( isCurrentlyOpen !== shouldOpen ) {
+		isSyncingAccordion = true;
+		button.click();
+		isSyncingAccordion = false;
+	}
+}
+
+/**
+ * Update the accordion's open state to match the current carousel position.
+ *
+ * Tracks the previously active item via activeItemMap to close it explicitly
+ * before opening the new one. This avoids stale aria-expanded reads that arise
+ * when all items are iterated and buttons are clicked in rapid succession.
  *
  * @param {HTMLElement} carouselEl The .rt-carousel root element.
  * @param {Array}       boundaries Section boundaries from carouselSectionMap.
- * @param {number}      slideIndex Currently selected Embla slide index.
+ * @param {number}      slideIndex Current slide index to resolve the active section.
  */
 function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
 	let sectionIdx = 0;
@@ -170,44 +207,50 @@ function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
 	}
 	const sectionId = boundaries[ sectionIdx ]?.id;
 
-	let activeItem = null;
-
+	// Find the accordion item that corresponds to the active section.
+	let newActiveItem = null;
 	carouselEl
 		.querySelectorAll( '.wp-block-accordion-item' )
 		.forEach( ( item, i ) => {
 			const target = item.dataset.carouselTarget;
-			const active = target ? target === sectionId : i === sectionIdx;
-			item.classList.toggle( ACTIVE_CLASS, active );
-
-			if ( active ) {
-				activeItem = item;
-			}
-
-			if ( item.hasAttribute( 'data-carousel-nav-only' ) ) {
-				return;
-			}
-			const button = item.querySelector(
-				'.wp-block-accordion-heading__toggle'
-			);
-			if (
-				button &&
-				active !== ( button.getAttribute( 'aria-expanded' ) === 'true' )
-			) {
-				isSyncingAccordion = true;
-				button.click();
-				isSyncingAccordion = false;
+			if ( target ? target === sectionId : i === sectionIdx ) {
+				newActiveItem = item;
 			}
 		} );
 
-	if ( activeItem ) {
-		updatePanelContainer( carouselEl, activeItem );
+	const prevActiveItem = activeItemMap.get( carouselEl );
+	if ( newActiveItem === prevActiveItem ) {
+		return;
+	}
+
+	activeItemMap.set( carouselEl, newActiveItem );
+
+	// Close the previously active item before opening the new one so that
+	// accordion auto-close behaviour (one-open mode) doesn't race with the
+	// open call below.
+	if ( prevActiveItem ) {
+		setAccordionItemOpen( prevActiveItem, false );
+	}
+
+	if ( newActiveItem ) {
+		setAccordionItemOpen( newActiveItem, true );
+		updatePanelContainer( carouselEl, newActiveItem );
 	}
 }
 
 /**
  * Waits for Embla to initialise on the carousel's .embla element (deferred
  * by the rt-carousel plugin behind its own IntersectionObserver), then
- * subscribes to the `select` event to keep accordion active classes in sync.
+ * subscribes to two Embla events:
+ *
+ * select — fires when a snap is committed (start of animation). Uses
+ * selectedScrollSnap() so the accordion updates immediately, before the
+ * carousel finishes moving.
+ *
+ * settle — fires after animation completes. Uses slidesInView()[0] for the
+ * accurate final position; also catches drag navigation where select may not
+ * have fired. activeItemMap prevents a redundant transition if select already
+ * activated the correct section.
  *
  * @param {HTMLElement} carouselEl The .rt-carousel root element.
  */
@@ -235,14 +278,31 @@ function initAccordionActiveState( carouselEl ) {
 				if ( ! boundaries?.length ) {
 					return;
 				}
-				const sync = () =>
+				// select fires when a snap is committed (start of animation).
+				// selectedScrollSnap() already holds the target snap at this
+				// point so the accordion updates immediately, before animation.
+				const syncOnSelect = () =>
 					syncActiveAccordionItem(
 						carouselEl,
 						boundaries,
 						embla.selectedScrollSnap()
 					);
-				embla.on( 'select', sync );
-				sync();
+
+				// settle fires after animation completes. slidesInView()[0]
+				// is the accurate leftmost slide index at the final position,
+				// covering drag navigation where select may not have fired.
+				const syncOnSettle = () => {
+					const inView = embla.slidesInView();
+					syncActiveAccordionItem(
+						carouselEl,
+						boundaries,
+						inView.length ? inView[ 0 ] : embla.selectedScrollSnap()
+					);
+				};
+
+				embla.on( 'select', syncOnSelect );
+				embla.on( 'settle', syncOnSettle );
+				syncOnSelect();
 			} else if ( attempts++ < 30 ) {
 				requestAnimationFrame( poll );
 			}
@@ -262,8 +322,12 @@ store( 'hm-carousel-accordion', {
 		 *
 		 * For auto mode the accordion item's DOM position maps 1-to-1 with
 		 * the carousel sections recorded in carouselSectionMap.
-		 * For manual mode the context carries a manualTarget term-ID string
-		 * that is matched against each section's data-carousel-section value.
+		 * For manual mode the context carries a manualTarget slug that is
+		 * matched against each section's data-carousel-section value.
+		 *
+		 * The panel container is updated immediately for instant feedback.
+		 * The accordion item's is-open state is driven by syncActiveAccordionItem
+		 * via the select event Embla fires after scrollTo.
 		 */
 		navigate() {
 			if ( isSyncingAccordion ) {
@@ -304,16 +368,10 @@ store( 'hm-carousel-accordion', {
 				return;
 			}
 
-			// Optimistically apply the active class and update the panel
-			// container before Embla's select event fires so the UI updates
-			// instantly on click.
+			// Update the panel container immediately so the content switches
+			// at click time rather than waiting for Embla's select event.
 			const itemEl = ref.closest( '.wp-block-accordion-item' );
 			if ( itemEl ) {
-				carouselEl
-					.querySelectorAll( '.wp-block-accordion-item' )
-					.forEach( ( item ) =>
-						item.classList.toggle( ACTIVE_CLASS, item === itemEl )
-					);
 				updatePanelContainer( carouselEl, itemEl );
 			}
 

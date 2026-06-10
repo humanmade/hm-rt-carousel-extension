@@ -36,7 +36,7 @@ Enables a `core/accordion` block placed alongside the carousel viewport to act a
 
 Each post slide carries a `data-carousel-section` attribute (category slug) after combining. The accordion heading click is handled by an Interactivity API store (`hm-carousel-accordion`) that resolves the correct slide index and calls Embla's `scrollTo`.
 
-The active accordion item (the one whose section is currently in view) receives an `is-active` class on its `.wp-block-accordion-item` element. This is updated both on heading click and whenever the carousel position changes (e.g. via prev/next controls). Use `.wp-block-accordion-item.is-active` to style the active state.
+The active accordion item (the one whose section is currently in view) receives the accordion's native `is-open` class, applied on heading click and whenever the carousel position changes via any navigation method (prev/next controls, drag, programmatic scroll). Use `.wp-block-accordion-item.is-open` to style the active state.
 
 A `<div class="hm-carousel-accordion-panel-container">` is also inserted after the accordion block. It receives a copy of the active accordion item's panel content and updates whenever the active item changes. This is intended for mobile layouts where the inline accordion panels are hidden and the container is shown instead — giving a tab-panel appearance. Apply CSS at your breakpoint to hide `.wp-block-accordion-panel` and show `.hm-carousel-accordion-panel-container`.
 
