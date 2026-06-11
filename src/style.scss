@@ -29,7 +29,7 @@
 
 	@container carousel ( width < 60rem ) {
 		.wp-block-post-template.is-layout-grid,
-		&.is-style-columns-2 .wp-block-rt-carousel-carousel-viewport
+		&.is-style-columns-2 .wp-block-rt-carousel-carousel-viewport,
 		&.is-style-columns-3 .wp-block-rt-carousel-carousel-viewport,
 		&.is-style-columns-4 .wp-block-rt-carousel-carousel-viewport {
 			// Drop to two columns.
@@ -41,7 +41,7 @@
 
 	@container carousel ( width < 35rem ) {
 		.wp-block-post-template.is-layout-grid,
-		&.is-style-columns-2 .wp-block-rt-carousel-carousel-viewport
+		&.is-style-columns-2 .wp-block-rt-carousel-carousel-viewport,
 		&.is-style-columns-3 .wp-block-rt-carousel-carousel-viewport,
 		&.is-style-columns-4 .wp-block-rt-carousel-carousel-viewport {
 			// Drop to one column.
@@ -54,5 +54,47 @@
 	&,
 	&.is-layout-flex {
 		gap: var( --wp--style--block-gap, 1rem );
+	}
+}
+
+// Accordion items used as carousel navigation with an empty panel:
+// hide the expand icon and keep the panel permanently hidden.
+.wp-block-accordion-item[data-carousel-nav-only] {
+	.wp-block-accordion-panel,
+	.wp-block-accordion-heading__toggle-icon {
+		display: none !important;
+	}
+}
+
+// The accordion tabs layout is tested inside of the columns block, which breaks to mobile at 781px.
+.rt-carousel:has( .wp-block-column .wp-block-accordion ) {
+	@media ( max-width: 781px ) {
+		.wp-block-accordion {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+
+		// Mobile: regular accordion panels hidden, container visible.
+		.wp-block-accordion-panel,
+		.wp-block-accordion-heading__toggle-icon {
+			display: none !important;
+		}
+
+		.hm-carousel-accordion-panel-container {
+			display: block;
+			margin-block-start: 1em;
+		}
+
+		.hm-carousel-accordion-panel-container:empty {
+			display: none;
+		}
+	}
+
+	@media ( min-width: 782px ) {
+		// Desktop: regular accordion panels show inline, extra panel container hidden.
+		.hm-carousel-accordion-panel-container {
+			display: none;
+		}
 	}
 }
