@@ -14,7 +14,7 @@ Adds editor supports not included in rt-carousel by default:
 
 | Block                           | Supports added                                                     |
 | ------------------------------- | ------------------------------------------------------------------ |
-| `rt-carousel/carousel`          | Spacing (margin top/bottom, blockGap), disables background colour  |
+| `rt-carousel/carousel`          | Spacing (margin top/bottom, blockGap), disables background color  |
 | `rt-carousel/carousel-viewport` | Spacing (margin top/bottom)                                        |
 | `rt-carousel/carousel-controls` | Spacing (margin top/bottom, blockGap), flex layout, wide alignment |
 
@@ -30,8 +30,8 @@ Enables a `core/accordion` block placed alongside the carousel viewport to act a
 
 - Place one or more `core/query` blocks inside the carousel viewport, each filtered by a different category. The plugin combines their post output into a single slide list on the frontend and records each section's start position.
 - Place a `core/accordion` block (with one item per query loop) alongside the viewport inside the same carousel. Each accordion item gets a **Carousel Navigation** inspector panel.
-- **Auto mode** (default) — the category is inferred from the query loop at the same position. The assigned category is shown read-only in the inspector.
-- **Manual mode** — toggle off "Auto-assign category" and pick the category from a dropdown.
+- **Auto mode** (default) — the category is inferred from the query loop at the same position. The assigned category is shown read-only in the inspector. Query loops without a category filter are included in the position count, so each accordion item aligns with its corresponding query loop regardless of whether it is filtered.
+- **Manual mode** — toggle off "Auto-assign category" and pick the category from a dropdown. Use this when the query loops are not in the same order as the accordion items.
 - If an accordion item's panel contains only an empty paragraph (or no content), the expand icon is hidden and the panel never opens; the heading acts purely as a navigation control.
 
 Each post slide carries a `data-carousel-section` attribute (category slug) after combining. The accordion heading click is handled by an Interactivity API store (`hm-carousel-accordion`) that resolves the correct slide index and calls Embla's `scrollTo`.

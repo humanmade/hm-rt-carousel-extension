@@ -76,6 +76,13 @@ function initCarouselSections( carouselEl ) {
 
 	carouselSectionMap.set( carouselEl, boundaries );
 
+	// Remove the section attribute from containers now that each post carries
+	// its own copy. The first section stays in the DOM after combining so
+	// leaving its attribute would falsely imply it contains only one section.
+	sections.forEach( ( section ) =>
+		section.removeAttribute( 'data-carousel-section' )
+	);
+
 	// Combine: move all posts into the first section's post-template.
 	const firstTemplate = sections[ 0 ].querySelector(
 		'.wp-block-post-template'
@@ -346,6 +353,8 @@ store( 'hm-carousel-accordion', {
 				return;
 			}
 
+			const itemEl = ref.closest( '.wp-block-accordion-item' );
+
 			let boundary;
 
 			const { manualTarget } = getContext();
@@ -359,7 +368,6 @@ store( 'hm-carousel-accordion', {
 						'.wp-block-accordion-item'
 					),
 				];
-				const itemEl = ref.closest( '.wp-block-accordion-item' );
 				const index = items.indexOf( itemEl );
 				boundary = index >= 0 ? boundaries[ index ] : undefined;
 			}
@@ -370,7 +378,6 @@ store( 'hm-carousel-accordion', {
 
 			// Update the panel container immediately so the content switches
 			// at click time rather than waiting for Embla's select event.
-			const itemEl = ref.closest( '.wp-block-accordion-item' );
 			if ( itemEl ) {
 				updatePanelContainer( carouselEl, itemEl );
 			}

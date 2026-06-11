@@ -23,7 +23,6 @@ function bootstrap(): void {
 	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_context' );
 	add_filter( 'render_block_core/query', __NAMESPACE__ . '\\filter_query_in_carousel', 10, 3 );
 	add_filter( 'render_block_core/accordion-item', __NAMESPACE__ . '\\filter_accordion_item_in_carousel', 10, 3 );
-	add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue_carousel_accordion_module' );
 }
 
 /**
@@ -107,11 +106,13 @@ function is_empty_accordion_panel( array $block ): bool {
  * Inject data-carousel-section on core/query blocks that live inside a
  * carousel, keyed by the slug of the first category in their taxQuery.
  *
+ * Query blocks with no category filter receive the sentinel value
+ * "__all__" so they are included in the JS boundary tracking and
+ * auto-mode accordion items stay index-aligned with their query loop.
  * Falls back to the numeric term ID if the term cannot be resolved.
- * The slug matches the value stored on accordion items in manual mode.
  *
- * @param string   $content  Rendered block HTML.
- * @param array    $block    Parsed block array.
+ * @param string    $content  Rendered block HTML.
+ * @param array     $block    Parsed block array.
  * @param \WP_Block $instance Block instance (carries context).
  * @return string Modified HTML.
  */
@@ -124,12 +125,14 @@ function filter_query_in_carousel( string $content, array $block, \WP_Block $ins
 	$category_ids = $tax_query['include']['category'] ?? [];
 	$first_id     = ! empty( $category_ids ) ? reset( $category_ids ) : null;
 
-	if ( ! $first_id ) {
-		return $content;
+	if ( $first_id ) {
+		$term = get_term( absint( $first_id ), 'category' );
+		$slug = ( $term && ! is_wp_error( $term ) ) ? $term->slug : (string) absint( $first_id );
+	} else {
+		// No category filter — use a sentinel that cannot collide with a real
+		// category slug (WordPress slugs never contain underscores).
+		$slug = '__all__';
 	}
-
-	$term = get_term( absint( $first_id ), 'category' );
-	$slug = ( $term && ! is_wp_error( $term ) ) ? $term->slug : (string) absint( $first_id );
 
 	$p = new \WP_HTML_Tag_Processor( $content );
 
@@ -161,6 +164,8 @@ function filter_accordion_item_in_carousel( string $content, array $block, \WP_B
 	if ( ! ( $instance->context['rt-carousel/isCarousel'] ?? false ) ) {
 		return $content;
 	}
+
+	wp_enqueue_script_module( '@hm/carousel-accordion-view' );
 
 	$is_nav_only       = is_empty_accordion_panel( $block );
 	$manual_target_id  = isset( $block['attrs']['carouselSection'] )
@@ -197,10 +202,7 @@ function filter_accordion_item_in_carousel( string $content, array $block, \WP_B
 	$p->set_attribute(
 		'data-wp-context',
 		wp_json_encode(
-			[
-				'isNavOnly'    => $is_nav_only,
-				'manualTarget' => $manual_target,
-			],
+			[ 'manualTarget' => $manual_target ],
 			JSON_UNESCAPED_SLASHES
 		)
 	);
@@ -246,6 +248,8 @@ function filter_accordion_item_in_carousel( string $content, array $block, \WP_B
 
 /**
  * Register the frontend view module for the carousel accordion behaviour.
+ * Enqueueing is handled lazily inside filter_accordion_item_in_carousel so
+ * the module is only loaded on pages that actually render the pattern.
  *
  * @return void
  */
@@ -264,54 +268,6 @@ function register_carousel_accordion_module(): void {
 		$asset['dependencies'],
 		$asset['version']
 	);
-}
-
-/**
- * Recursively search a block tree for a core/accordion that is a descendant
- * of an rt-carousel/carousel block.
- *
- * @param array $blocks      Parsed block list to search.
- * @param bool  $in_carousel Whether the current walk is already inside a carousel.
- * @return bool True when the pattern is found.
- */
-function has_accordion_in_carousel( array $blocks, bool $in_carousel = false ): bool {
-	foreach ( $blocks as $block ) {
-		$name = $block['blockName'] ?? '';
-
-		if ( $in_carousel && $name === 'core/accordion' ) {
-			return true;
-		}
-
-		if ( ! empty( $block['innerBlocks'] ) ) {
-			if ( has_accordion_in_carousel(
-				$block['innerBlocks'],
-				$in_carousel || $name === 'rt-carousel/carousel'
-			) ) {
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-/**
- * Enqueue the carousel accordion view module on pages where an accordion is
- * nested inside a carousel.
- *
- * @return void
- */
-function enqueue_carousel_accordion_module(): void {
-	if ( ! has_block( 'rt-carousel/carousel' ) || ! has_block( 'core/accordion' ) ) {
-		return;
-	}
-
-	$post = get_post();
-	if ( ! $post || ! has_accordion_in_carousel( parse_blocks( $post->post_content ) ) ) {
-		return;
-	}
-
-	wp_enqueue_script_module( '@hm/carousel-accordion-view' );
 }
 
 /**
