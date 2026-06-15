@@ -7,10 +7,17 @@ import {
 	useSettings,
 	getSpacingPresetCssVar,
 } from '@wordpress/block-editor';
-import { PanelBody, SelectControl } from '@wordpress/components';
+import {
+	PanelBody,
+	SelectControl,
+	ToggleControl,
+	BaseControl,
+} from '@wordpress/components';
+import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import { FetchAllTermSelectControl } from '@humanmade/block-editor-components';
 
-const BLOCK_NAME = 'rt-carousel/carousel';
+const CAROUSEL_BLOCK = 'rt-carousel/carousel';
 
 /**
  * Inspector control for selecting a theme spacing preset as the carousel slide gap.
@@ -32,14 +39,6 @@ const SlideGapControl = ( { attributes, setAttributes } ) => {
 		} ) ),
 	];
 
-	const handleChange = ( slug ) => {
-		if ( ! slug ) {
-			setAttributes( { slideGapSlug: '' } );
-			return;
-		}
-		setAttributes( { slideGapSlug: slug } );
-	};
-
 	return (
 		<InspectorControls group="styles">
 			<PanelBody
@@ -51,7 +50,9 @@ const SlideGapControl = ( { attributes, setAttributes } ) => {
 					hideLabelFromVision
 					value={ slideGapSlug }
 					options={ options }
-					onChange={ handleChange }
+					onChange={ ( slug ) =>
+						setAttributes( { slideGapSlug: slug } )
+					}
 					__next40pxDefaultSize
 				/>
 			</PanelBody>
@@ -64,7 +65,7 @@ const SlideGapControl = ( { attributes, setAttributes } ) => {
  */
 const withSlideGapControl = createHigherOrderComponent( ( BlockEdit ) => {
 	return ( props ) => {
-		if ( props.name !== BLOCK_NAME ) {
+		if ( props.name !== CAROUSEL_BLOCK ) {
 			return <BlockEdit { ...props } />;
 		}
 		return (
@@ -87,7 +88,7 @@ const withSlideGapControl = createHigherOrderComponent( ( BlockEdit ) => {
  * @return {Object} Modified settings.
  */
 const setCarouselAttributes = ( settings, name ) => {
-	if ( name !== BLOCK_NAME ) {
+	if ( name !== CAROUSEL_BLOCK ) {
 		return settings;
 	}
 	return {
@@ -102,7 +103,7 @@ const setCarouselAttributes = ( settings, name ) => {
 	};
 };
 
-const CONTROLS_BLOCK_NAME = 'rt-carousel/carousel-controls';
+const CONTROLS_BLOCK = 'rt-carousel/carousel-controls';
 
 /**
  * Writes blockGap as a CSS custom property onto the saved block markup so the
@@ -115,8 +116,8 @@ const CONTROLS_BLOCK_NAME = 'rt-carousel/carousel-controls';
  */
 const addCarouselStylesProps = ( props, blockType, attributes ) => {
 	if (
-		blockType.name !== CONTROLS_BLOCK_NAME &&
-		blockType.name !== BLOCK_NAME
+		blockType.name !== CONTROLS_BLOCK &&
+		blockType.name !== CAROUSEL_BLOCK
 	) {
 		return props;
 	}
@@ -157,7 +158,7 @@ const verticalAlignMap = {
  */
 const withCarouselStyles = createHigherOrderComponent(
 	( BlockListBlock ) => ( props ) => {
-		if ( props.name !== CONTROLS_BLOCK_NAME && props.name !== BLOCK_NAME ) {
+		if ( props.name !== CONTROLS_BLOCK && props.name !== CAROUSEL_BLOCK ) {
 			return <BlockListBlock { ...props } />;
 		}
 
@@ -202,6 +203,225 @@ const withCarouselStyles = createHigherOrderComponent(
 	'withCarouselStyles'
 );
 
+const ACCORDION_ITEM_BLOCK = 'core/accordion-item';
+const CAROUSEL_VIEWPORT_BLOCK = 'rt-carousel/carousel-viewport';
+const QUERY_BLOCK = 'core/query';
+
+/**
+ * Recursively find the first block with a given name within a block list.
+ *
+ * @param {Array}  blocks Block list to search.
+ * @param {string} name   Block name to find.
+ * @return {Object|undefined} Matched block or undefined.
+ */
+const findBlock = ( blocks = [], name ) => {
+	for ( const block of blocks ) {
+		if ( block.name === name ) {
+			return block;
+		}
+		const found = findBlock( block.innerBlocks, name );
+		if ( found ) {
+			return found;
+		}
+	}
+	return undefined;
+};
+
+/**
+ * Inspector panel rendered inside a core/accordion-item that lives inside a
+ * carousel. Shows an auto/manual toggle and a category selector.
+ *
+ * Extracted as a named component so React hooks are always called
+ * unconditionally (the parent HOC exits early for non-accordion blocks).
+ *
+ * @param {Object}   root0
+ * @param {string}   root0.clientId      Block client ID.
+ * @param {Object}   root0.attributes    Block attributes.
+ * @param {Function} root0.setAttributes Block attribute setter.
+ */
+const AccordionCarouselNavInspector = ( {
+	clientId,
+	attributes,
+	setAttributes,
+} ) => {
+	const { carouselBlock, itemIndex } = useSelect(
+		( select ) => {
+			const { getBlockParents, getBlock } = select( 'core/block-editor' );
+			const parentIds = getBlockParents( clientId );
+			const parentBlocks = parentIds.map( ( id ) => getBlock( id ) );
+
+			const carousel = parentBlocks.find(
+				( b ) => b?.name === CAROUSEL_BLOCK
+			);
+			const accordion = parentBlocks.find(
+				( b ) => b?.name === 'core/accordion'
+			);
+			const idx =
+				accordion?.innerBlocks?.findIndex(
+					( b ) => b.clientId === clientId
+				) ?? -1;
+
+			return { carouselBlock: carousel, itemIndex: idx };
+		},
+		[ clientId ]
+	);
+
+	const viewport = findBlock(
+		carouselBlock?.innerBlocks,
+		CAROUSEL_VIEWPORT_BLOCK
+	);
+	const queryLoops = ( viewport?.innerBlocks ?? [] ).filter(
+		( b ) => b.name === QUERY_BLOCK
+	);
+	const matchingQuery = itemIndex >= 0 ? queryLoops[ itemIndex ] : undefined;
+	const inferredCategoryId =
+		matchingQuery?.attributes?.query?.taxQuery?.include?.category?.[ 0 ] ??
+		null;
+
+	const inferredCategory = useSelect(
+		( select ) => {
+			if ( ! inferredCategoryId ) {
+				return null;
+			}
+			return select( 'core' ).getEntityRecord(
+				'taxonomy',
+				'category',
+				inferredCategoryId
+			);
+		},
+		[ inferredCategoryId ]
+	);
+
+	const { carouselSectionAuto = true, carouselSection = '' } = attributes;
+
+	return (
+		<InspectorControls>
+			<PanelBody
+				title={ __(
+					'Carousel Navigation',
+					'hm-rt-carousel-extension'
+				) }
+			>
+				<ToggleControl
+					label={ __(
+						'Auto-assign category',
+						'hm-rt-carousel-extension'
+					) }
+					help={
+						carouselSectionAuto
+							? __(
+									'Category is inferred from the query loop at the same position.',
+									'hm-rt-carousel-extension'
+							  )
+							: __(
+									'Choose the category this heading navigates to.',
+									'hm-rt-carousel-extension'
+							  )
+					}
+					checked={ carouselSectionAuto }
+					onChange={ ( value ) =>
+						setAttributes( {
+							carouselSectionAuto: value,
+							...( value && { carouselSection: '' } ),
+						} )
+					}
+					__nextHasNoMarginBottom
+				/>
+				{ carouselSectionAuto ? (
+					<BaseControl
+						id="hm-rt-carousel-extension-assigned-category"
+						label={ __(
+							'Assigned category',
+							'hm-rt-carousel-extension'
+						) }
+						__nextHasNoMarginBottom
+					>
+						<p style={ { margin: 0 } }>
+							{ inferredCategory?.name ??
+								( inferredCategoryId
+									? __(
+											'Loading…',
+											'hm-rt-carousel-extension'
+									  )
+									: __(
+											'None — add a query loop to the carousel viewport at the same position.',
+											'hm-rt-carousel-extension'
+									  ) ) }
+						</p>
+					</BaseControl>
+				) : (
+					<FetchAllTermSelectControl
+						taxonomy="category"
+						label={ __( 'Category', 'hm-rt-carousel-extension' ) }
+						value={ carouselSection }
+						onChange={ ( value ) =>
+							setAttributes( {
+								carouselSection: String( value ),
+							} )
+						}
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+					/>
+				) }
+			</PanelBody>
+		</InspectorControls>
+	);
+};
+
+/**
+ * HOC that injects the carousel-navigation inspector into core/accordion-item.
+ * Skips blocks that are not accordion items and accordion items that are not
+ * inside a carousel (detected via the rt-carousel/isCarousel block context).
+ */
+const withAccordionCarouselNav = createHigherOrderComponent(
+	( BlockEdit ) => ( props ) => {
+		if ( props.name !== ACCORDION_ITEM_BLOCK ) {
+			return <BlockEdit { ...props } />;
+		}
+		if ( ! props.context?.[ 'rt-carousel/isCarousel' ] ) {
+			return <BlockEdit { ...props } />;
+		}
+		return (
+			<>
+				<BlockEdit { ...props } />
+				<AccordionCarouselNavInspector
+					clientId={ props.clientId }
+					attributes={ props.attributes }
+					setAttributes={ props.setAttributes }
+				/>
+			</>
+		);
+	},
+	'withAccordionCarouselNav'
+);
+
+/**
+ * Adds carouselSectionAuto and carouselSection attributes to core/accordion-item.
+ *
+ * @param {Object} settings Block type settings.
+ * @param {string} name     Block name.
+ * @return {Object} Modified settings.
+ */
+const setAccordionItemAttributes = ( settings, name ) => {
+	if ( name !== ACCORDION_ITEM_BLOCK ) {
+		return settings;
+	}
+	return {
+		...settings,
+		attributes: {
+			...settings.attributes,
+			carouselSectionAuto: {
+				type: 'boolean',
+				default: true,
+			},
+			carouselSection: {
+				type: 'string',
+				default: '',
+			},
+		},
+	};
+};
+
 const filters = [
 	{
 		hook: 'blocks.getSaveContent.extraProps',
@@ -222,6 +442,16 @@ const filters = [
 		hook: 'editor.BlockEdit',
 		namespace: 'hm-rt-carousel-extension/carousel-slide-gap-control',
 		callback: withSlideGapControl,
+	},
+	{
+		hook: 'blocks.registerBlockType',
+		namespace: 'hm-rt-carousel-extension/accordion-item-attributes',
+		callback: setAccordionItemAttributes,
+	},
+	{
+		hook: 'editor.BlockEdit',
+		namespace: 'hm-rt-carousel-extension/accordion-carousel-nav',
+		callback: withAccordionCarouselNav,
 	},
 ];
 
