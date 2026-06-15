@@ -1,5 +1,6 @@
 {
   "name": "rt-carousel/carousel",
   "editorScript": "file:./index.js",
-  "viewScript": "file:./style.js"
+  "viewScript": "file:./style.js",
+  "viewScriptModule": "file:./view.js"
 }
