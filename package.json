@@ -10,6 +10,7 @@
 		"lint:style": "wp-scripts lint-style src"
 	},
 	"devDependencies": {
+		"@humanmade/block-editor-components": "^0.10.0",
 		"@wordpress/scripts": "^31.6.0",
 		"block-editor-hmr": "^1.0"
 	}
