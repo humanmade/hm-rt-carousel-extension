@@ -12,11 +12,14 @@ WordPress plugin that extends the [rt-carousel](https://github.com/rtCamp/rt-car
 
 Adds editor supports not included in rt-carousel by default:
 
-| Block                           | Supports added                                                     |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `rt-carousel/carousel`          | Spacing (margin top/bottom, blockGap), disables background color  |
-| `rt-carousel/carousel-viewport` | Spacing (margin top/bottom)                                        |
-| `rt-carousel/carousel-controls` | Spacing (margin top/bottom, blockGap), flex layout, wide alignment |
+| Block                           | Supports added                                                                      |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `rt-carousel/carousel`          | Spacing (margin top/bottom, blockGap), disables background color                   |
+| `rt-carousel/carousel-viewport` | Spacing (margin top/bottom)                                                         |
+| `rt-carousel/carousel-controls` | Spacing (margin top/bottom, padding top/bottom, blockGap), flex layout, wide alignment |
+| `rt-carousel/carousel-dots`     | Spacing (margin top/bottom, padding top/bottom, blockGap), flex layout, wide alignment |
+
+The flex layout support on `rt-carousel/carousel-controls` and `rt-carousel/carousel-dots` exposes justify-content (left/center/right/space-between) and align-items (top/center/bottom/stretch) controls in the block inspector. The chosen values are forwarded to the frontend as `--hm-rt-carousel-extension-controls-justify` and `--hm-rt-carousel-extension-controls-align` CSS custom properties on the block wrapper, consumed by the theme's block CSS. For the dots block, blockGap is additionally bridged to `--rt-carousel-dots-gap` so the native `rt-carousel` gap variable reflects the preset value.
 
 ### Slide gap preset picker
 
