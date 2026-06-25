@@ -20,6 +20,7 @@ function bootstrap(): void {
 	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_supports' );
 	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_viewport_supports' );
 	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_controls_supports' );
+	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_dots_supports' );
 	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_context' );
 	add_filter( 'render_block_core/query', __NAMESPACE__ . '\\filter_query_in_carousel', 10, 3 );
 	add_filter( 'render_block_core/accordion-item', __NAMESPACE__ . '\\filter_accordion_item_in_carousel', 10, 3 );
@@ -379,6 +380,38 @@ function extend_carousel_viewport_supports( array $metadata ): array {
 		$metadata['supports']['spacing'] ?? [],
 		[ 'margin' => [ 'top', 'bottom' ] ]
 	);
+
+	return $metadata;
+}
+
+/**
+ * Add blockGap, margin, padding, layout, and wide alignment supports to rt-carousel/carousel-dots.
+ *
+ * @param array $metadata Block metadata from block.json.
+ * @return array Modified metadata.
+ */
+function extend_carousel_dots_supports( array $metadata ): array {
+	if ( ( $metadata['name'] ?? '' ) !== 'rt-carousel/carousel-dots' ) {
+		return $metadata;
+	}
+
+	$metadata['supports']['spacing'] = array_merge(
+		$metadata['supports']['spacing'] ?? [],
+		[
+			'margin'   => [ 'top', 'bottom' ],
+			'padding'  => [ 'top', 'bottom' ],
+			'blockGap' => true,
+		]
+	);
+
+	$metadata['supports']['layout'] = [
+		'allowSwitching'   => false,
+		'allowInheriting'  => false,
+		'allowOrientation' => false,
+		'default'          => [ 'type' => 'flex' ],
+	];
+
+	$metadata['supports']['align'] = [ 'wide' ];
 
 	return $metadata;
 }

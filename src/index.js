@@ -104,6 +104,7 @@ const setCarouselAttributes = ( settings, name ) => {
 };
 
 const CONTROLS_BLOCK = 'rt-carousel/carousel-controls';
+const DOTS_BLOCK = 'rt-carousel/carousel-dots';
 
 /**
  * Writes blockGap as a CSS custom property onto the saved block markup so the
@@ -117,6 +118,7 @@ const CONTROLS_BLOCK = 'rt-carousel/carousel-controls';
 const addCarouselStylesProps = ( props, blockType, attributes ) => {
 	if (
 		blockType.name !== CONTROLS_BLOCK &&
+		blockType.name !== DOTS_BLOCK &&
 		blockType.name !== CAROUSEL_BLOCK
 	) {
 		return props;
@@ -158,7 +160,11 @@ const verticalAlignMap = {
  */
 const withCarouselStyles = createHigherOrderComponent(
 	( BlockListBlock ) => ( props ) => {
-		if ( props.name !== CONTROLS_BLOCK && props.name !== CAROUSEL_BLOCK ) {
+		if (
+			props.name !== CONTROLS_BLOCK &&
+			props.name !== DOTS_BLOCK &&
+			props.name !== CAROUSEL_BLOCK
+		) {
 			return <BlockListBlock { ...props } />;
 		}
 
