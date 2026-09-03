@@ -8,14 +8,17 @@ const CAROUSEL_SYMBOL = Symbol.for( 'rt-carousel.carousel' );
 let isSyncingAccordion = false;
 
 /**
- * Per-carousel map of section boundaries built during DOM combining.
+ * Per-carousel map of section boundaries.
  * Key: .rt-carousel element
- * Value: Array of { id: string, startSlide: number }
+ * Value: Array of { id: string|null, startSlide: number }
  *
- * Populated before Embla initialises so the navigate action can resolve
- * slide indices without re-querying a potentially restructured DOM.
+ * Populated by initCarouselSections during query-loop DOM combining, so the
+ * navigate action can resolve slide indices without re-querying a
+ * potentially restructured DOM. For carousels with no query loops,
+ * initCarouselSlideBoundaries populates it instead with one boundary per
+ * static rt-carousel/carousel-slide block (id: null, matched by position).
  *
- * @type {Map<HTMLElement, Array<{id: string, startSlide: number}>>}
+ * @type {Map<HTMLElement, Array<{id: string|null, startSlide: number}>>}
  */
 const carouselSectionMap = new Map();
 
@@ -150,6 +153,45 @@ function initAccordionPanelContainer( carouselEl ) {
 	if ( initialItem ) {
 		updatePanelContainer( carouselEl, initialItem );
 	}
+}
+
+/**
+ * Fallback for carousels built from static rt-carousel/carousel-slide blocks
+ * rather than query loops. Builds one boundary per slide (id: null, since
+ * there is no category to key on) so accordion items map 1-to-1 by position
+ * to the slide at the same index, the same way auto-mode section matching
+ * works for query loops in initCarouselSections.
+ *
+ * No-ops if initCarouselSections already populated boundaries for this
+ * carousel (query-loop carousels take precedence), if there's no accordion
+ * to drive, or if a query loop is present but was skipped for having only
+ * one section (data-carousel-section survives on that section since
+ * initCarouselSections returns before stripping it).
+ *
+ * @param {HTMLElement} carouselEl The .rt-carousel root element.
+ */
+function initCarouselSlideBoundaries( carouselEl ) {
+	if ( carouselSectionMap.has( carouselEl ) ) {
+		return;
+	}
+
+	if ( ! carouselEl.querySelector( '.wp-block-accordion' ) ) {
+		return;
+	}
+
+	if ( carouselEl.querySelector( '[data-carousel-section]' ) ) {
+		return;
+	}
+
+	const slides = [ ...carouselEl.querySelectorAll( '.embla__slide' ) ];
+	if ( slides.length < 2 ) {
+		return;
+	}
+
+	carouselSectionMap.set(
+		carouselEl,
+		slides.map( ( slide, index ) => ( { id: null, startSlide: index } ) )
+	);
 }
 
 /**
@@ -397,6 +439,7 @@ store( 'hm-carousel-accordion', {
 function onDomReady() {
 	document.querySelectorAll( '.rt-carousel' ).forEach( ( carouselEl ) => {
 		initCarouselSections( carouselEl );
+		initCarouselSlideBoundaries( carouselEl );
 		initAccordionPanelContainer( carouselEl );
 		initAccordionActiveState( carouselEl );
 	} );
