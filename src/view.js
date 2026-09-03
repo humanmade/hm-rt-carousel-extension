@@ -362,6 +362,169 @@ function initAccordionActiveState( carouselEl ) {
 	io.observe( carouselEl );
 }
 
+const ACCORDION_MOBILE_BREAKPOINT = 781; // Matches the ≤781px stacked-accordion breakpoint in style.scss.
+const HEIGHT_LOCK_MEASURING_CLASS = 'hm-carousel-accordion-measuring';
+
+/**
+ * Find the nearest DOM ancestor that contains both given elements — the
+ * row/wrapper whose height must be locked (e.g. the wp:columns row holding
+ * the accordion "tabs" column and the carousel-viewport column).
+ *
+ * @param {HTMLElement} a
+ * @param {HTMLElement} b
+ * @return {HTMLElement|null} The shared ancestor, or null if none exists.
+ */
+function findCommonAncestor( a, b ) {
+	let node = a.parentElement;
+	while ( node && ! node.contains( b ) ) {
+		node = node.parentElement;
+	}
+	return node;
+}
+
+/**
+ * Force an accordion panel closed for measurement, independent of which
+ * core/accordion implementation is active: the bundled core block hides a
+ * closed panel via `inert` (plus `aria-hidden`), while the Gutenberg plugin
+ * version uses `hidden`/`hidden="until-found"`. Setting all three covers
+ * either mechanism's CSS regardless of which is live.
+ *
+ * @param {HTMLElement} panel The .wp-block-accordion-panel element.
+ */
+function forceClosePanel( panel ) {
+	panel.setAttribute( 'inert', '' );
+	panel.setAttribute( 'aria-hidden', 'true' );
+	panel.setAttribute( 'hidden', '' );
+}
+
+/**
+ * Force an accordion panel open for measurement by stripping whichever of
+ * the hidden-state attributes the active accordion implementation set.
+ *
+ * @param {HTMLElement} panel The .wp-block-accordion-panel element.
+ */
+function forceOpenPanel( panel ) {
+	panel.removeAttribute( 'inert' );
+	panel.removeAttribute( 'aria-hidden' );
+	panel.removeAttribute( 'hidden' );
+}
+
+/**
+ * Locks the row containing the accordion "tabs" and the carousel viewport to
+ * the height of its tallest accordion panel, so switching tabs doesn't
+ * reflow the carousel's slides/images beside it.
+ *
+ * No-ops unless the carousel actually has this two-part composition: an
+ * accordion and a carousel-viewport sharing a common flex/grid ancestor
+ * distinct from the carousel root (a plain accordion with no carousel, or a
+ * carousel with an accordion stacked above/below rather than beside it, is
+ * left untouched).
+ *
+ * Desktop-only: below the accordion's mobile breakpoint the accordion
+ * becomes a wrapped row of tab buttons with a shared panel underneath (see
+ * style.scss), where a locked row height doesn't apply — it resets to auto.
+ *
+ * Measures by directly toggling each panel's hidden-state attributes rather
+ * than clicking through the Interactivity API: closed panels are dropped out
+ * of layout entirely under both accordion implementations, so scrollHeight
+ * can't be read while closed, and going through a real click risks reading
+ * a mid-transition height (the two-column accordion style animates height
+ * over 500ms). Transitions are suppressed for the duration via
+ * hm-carousel-accordion-measuring so every open/close applies instantly;
+ * the whole pass runs synchronously so nothing paints mid-measurement, and
+ * real application state (which item is actually open) is never touched.
+ *
+ * @param {HTMLElement} carouselEl The .rt-carousel root element.
+ */
+function initAccordionCarouselHeightLock( carouselEl ) {
+	const accordion = carouselEl.querySelector( '.wp-block-accordion' );
+	const viewport = carouselEl.querySelector(
+		'.wp-block-rt-carousel-carousel-viewport'
+	);
+	if ( ! accordion || ! viewport ) {
+		return;
+	}
+
+	const row = findCommonAncestor( accordion, viewport );
+	if ( ! row || row === carouselEl ) {
+		return;
+	}
+
+	const rowDisplay = getComputedStyle( row ).display;
+	if ( ! /flex|grid/.test( rowDisplay ) ) {
+		return;
+	}
+
+	const panels = [
+		...accordion.querySelectorAll( '.wp-block-accordion-item' ),
+	]
+		.filter( ( item ) => ! item.hasAttribute( 'data-carousel-nav-only' ) )
+		.map( ( item ) => item.querySelector( '.wp-block-accordion-panel' ) )
+		.filter( Boolean );
+
+	if ( panels.length < 2 ) {
+		return;
+	}
+
+	const measure = () => {
+		if ( window.innerWidth <= ACCORDION_MOBILE_BREAKPOINT ) {
+			row.style.height = '';
+			return;
+		}
+
+		const originalAttrs = panels.map( ( panel ) => ( {
+			inert: panel.getAttribute( 'inert' ),
+			ariaHidden: panel.getAttribute( 'aria-hidden' ),
+			hidden: panel.getAttribute( 'hidden' ),
+		} ) );
+
+		row.classList.add( HEIGHT_LOCK_MEASURING_CLASS );
+		row.style.height = '';
+
+		panels.forEach( forceClosePanel );
+
+		let maxHeight = 0;
+		panels.forEach( ( panel ) => {
+			forceOpenPanel( panel );
+			maxHeight = Math.max(
+				maxHeight,
+				row.getBoundingClientRect().height
+			);
+			forceClosePanel( panel );
+		} );
+
+		panels.forEach( ( panel, index ) => {
+			const { inert, ariaHidden, hidden } = originalAttrs[ index ];
+			if ( inert === null ) {
+				panel.removeAttribute( 'inert' );
+			} else {
+				panel.setAttribute( 'inert', inert );
+			}
+			if ( ariaHidden === null ) {
+				panel.removeAttribute( 'aria-hidden' );
+			} else {
+				panel.setAttribute( 'aria-hidden', ariaHidden );
+			}
+			if ( hidden === null ) {
+				panel.removeAttribute( 'hidden' );
+			} else {
+				panel.setAttribute( 'hidden', hidden );
+			}
+		} );
+
+		row.classList.remove( HEIGHT_LOCK_MEASURING_CLASS );
+		row.style.height = `${ maxHeight }px`;
+	};
+
+	measure();
+
+	let resizeTimeout;
+	window.addEventListener( 'resize', () => {
+		clearTimeout( resizeTimeout );
+		resizeTimeout = setTimeout( measure, 150 );
+	} );
+}
+
 store( 'hm-carousel-accordion', {
 	actions: {
 		/**
@@ -442,6 +605,7 @@ function onDomReady() {
 		initCarouselSlideBoundaries( carouselEl );
 		initAccordionPanelContainer( carouselEl );
 		initAccordionActiveState( carouselEl );
+		initAccordionCarouselHeightLock( carouselEl );
 	} );
 }
 
