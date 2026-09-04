@@ -66,6 +66,16 @@
 	}
 }
 
+// Applied briefly by view.js while measuring the tallest accordion panel for
+// a tabbed accordion carousel (initAccordionCarouselHeightLock), so panels
+// snap open/closed instantly instead of animating through any accordion
+// style's height transition (e.g. the two-column accordion's 500ms transition).
+.hm-carousel-accordion-measuring,
+.hm-carousel-accordion-measuring * {
+	transition: none !important;
+	animation: none !important;
+}
+
 // The accordion tabs layout is tested inside of the columns block, which breaks to mobile at 781px.
 .rt-carousel:has( .wp-block-column .wp-block-accordion ) {
 	@media ( max-width: 781px ) {
