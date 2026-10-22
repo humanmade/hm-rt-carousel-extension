@@ -1,4 +1,9 @@
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import {
+	InspectorControls,
+	getTypographyClassesAndStyles,
+	useBlockProps,
+	useSettings,
+} from '@wordpress/block-editor';
 import { PanelBody, TextControl } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
 import { useMemo } from '@wordpress/element';
@@ -46,6 +51,17 @@ function Edit( {
 
 	const blockProps = useBlockProps( { className: layoutClassNames } );
 
+	// Font size is applied to each button, not the wrapper, because the
+	// theme's button styles set the buttons' own size (as with core/button).
+	const [ fluidTypographySettings, layout ] = useSettings(
+		'typography.fluid',
+		'layout'
+	);
+	const typography = getTypographyClassesAndStyles( attributes, {
+		typography: { fluid: fluidTypographySettings },
+		layout: { wideSize: layout?.wideSize },
+	} );
+
 	const labels = [
 		allLabel || __( 'All', 'hm-rt-carousel-extension' ),
 		...tags,
@@ -78,7 +94,13 @@ function Edit( {
 						<button
 							key={ label }
 							type="button"
-							className="wp-element-button wp-block-hm-rt-carousel-extension-carousel-filters__button"
+							className={ [
+								'wp-element-button wp-block-hm-rt-carousel-extension-carousel-filters__button',
+								typography.className,
+							]
+								.filter( Boolean )
+								.join( ' ' ) }
+							style={ typography.style }
 							aria-pressed={ index === 0 }
 						>
 							{ label }
