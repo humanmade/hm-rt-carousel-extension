@@ -1,6 +1,6 @@
 # HM rtCarousel Extension
 
-WordPress plugin that extends the [rt-carousel](https://github.com/rtCamp/rt-carousel-block) block with additional block supports, a theme-preset slide gap picker, accordion-based carousel navigation, and on-demand frontend styles.
+WordPress plugin that extends the [rt-carousel](https://github.com/rtCamp/rt-carousel-block) block with additional block supports, a theme-preset slide gap picker, accordion-based carousel navigation, slide filtering, and on-demand frontend styles.
 
 ## Requirements
 
@@ -44,6 +44,20 @@ The active accordion item (the one whose section is currently in view) receives 
 A `<div class="hm-carousel-accordion-panel-container">` is also inserted after the accordion block. It receives a copy of the active accordion item's panel content and updates whenever the active item changes. This is intended for mobile layouts where the inline accordion panels are hidden and the container is shown instead — giving a tab-panel appearance. Apply CSS at your breakpoint to hide `.wp-block-accordion-panel` and show `.hm-carousel-accordion-panel-container`.
 
 The plugin includes built-in styles for a tabbed accordion layout where the accordion and carousel viewport are placed in separate columns inside a `core/columns` block. Below 782px (the point at which columns stack), the accordion items are displayed as a flex-wrapped row of tab buttons, the inline panels are hidden, and the panel container is shown beneath them.
+
+### Carousel filters
+
+Adds a **Carousel Filters** block (`hm-rt-carousel-extension/carousel-filters`) that shows a row of buttons for filtering a carousel's slides, e.g. "All / Pre-K / K-12".
+
+**How it works:**
+
+- Select each `rt-carousel/carousel-slide` and add its tags in the **Carousel Filters** panel. A slide can have several tags; tags already used in the carousel are suggested.
+- Insert a Carousel Filters block anywhere inside the carousel. It renders an "All" button plus one button per tag, in the order tags first appear across the slides. The "All" label can be changed in the block settings.
+- On the front end, choosing a filter hides the non-matching slides and re-initialises Embla with the visible ones, so the controls, dots and progress reflect the filtered set.
+
+The buttons use the theme's element button styles (`.wp-element-button`). Inactive filters are outlined in the block's text colour; the active filter uses the theme's button colours unless **Active filter colors** are set on the block. Font size, spacing, and justification come from the block's own supports.
+
+Filtering works with static slides only, not query-loop slides, and is not combined with accordion carousel navigation or rt-carousel's tabs mode.
 
 ### Frontend styles
 

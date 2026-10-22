@@ -1,0 +1,34 @@
+// Buttons use the theme's element button styles (.wp-element-button) for
+// typography, padding and radius. Inactive filters become an outline in the
+// block's text colour; the active filter keeps the theme's button colours
+// unless active colours are chosen in the block's Color panel. Font size is
+// inherited so the block's typography control applies to the buttons, scoped
+// under the wrapper to outrank the theme's element button font size.
+.wp-block-hm-rt-carousel-extension-carousel-filters
+	.wp-block-hm-rt-carousel-extension-carousel-filters__button {
+	font-size: inherit;
+}
+
+.wp-block-hm-rt-carousel-extension-carousel-filters__button {
+	cursor: pointer;
+
+	&[aria-pressed="false"] {
+		background-color: transparent;
+		border-color: currentcolor;
+		color: inherit;
+
+		&:hover,
+		&:focus-visible {
+			background-color: color-mix(in srgb, currentcolor 15%, transparent);
+		}
+	}
+
+	.has-active-background &[aria-pressed="true"] {
+		background-color: var(--hm-carousel-filters-active-background);
+		border-color: var(--hm-carousel-filters-active-background);
+	}
+
+	.has-active-text &[aria-pressed="true"] {
+		color: var(--hm-carousel-filters-active-text);
+	}
+}

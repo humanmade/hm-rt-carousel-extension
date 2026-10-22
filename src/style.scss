@@ -109,3 +109,9 @@
 		}
 	}
 }
+
+// Slides hidden by the carousel filters block. Overrides any display value
+// themes set on slides, which would otherwise beat the [hidden] UA style.
+.embla__slide[hidden] {
+	display: none !important;
+}

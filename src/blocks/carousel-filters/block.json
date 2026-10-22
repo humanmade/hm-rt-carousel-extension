@@ -1,0 +1,61 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "hm-rt-carousel-extension/carousel-filters",
+	"title": "Carousel Filters",
+	"category": "rt-carousel",
+	"icon": "filter",
+	"description": "Buttons that filter the carousel's slides by their filter tags.",
+	"textdomain": "hm-rt-carousel-extension",
+	"ancestor": [ "rt-carousel/carousel" ],
+	"usesContext": [ "hm-rt-carousel-extension/filterTags" ],
+	"attributes": {
+		"allLabel": {
+			"type": "string",
+			"default": ""
+		},
+		"activeBackgroundColor": {
+			"type": "string"
+		},
+		"customActiveBackgroundColor": {
+			"type": "string"
+		},
+		"activeTextColor": {
+			"type": "string"
+		},
+		"customActiveTextColor": {
+			"type": "string"
+		}
+	},
+	"supports": {
+		"html": false,
+		"interactivity": true,
+		"color": {
+			"text": true,
+			"background": false,
+			"link": false
+		},
+		"typography": {
+			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true,
+			"blockGap": true
+		},
+		"layout": {
+			"allowSwitching": false,
+			"allowInheriting": false,
+			"allowVerticalAlignment": false,
+			"default": {
+				"type": "flex",
+				"flexWrap": "wrap",
+				"justifyContent": "center"
+			}
+		}
+	},
+	"editorScript": "file:./index.js",
+	"style": "file:./style-index.css",
+	"viewScriptModule": "file:./view.js",
+	"render": "file:./render.php"
+}
