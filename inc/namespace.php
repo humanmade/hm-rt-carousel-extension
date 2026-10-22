@@ -45,13 +45,32 @@ function extend_carousel_context( array $metadata ): array {
 			$metadata['providesContext']['rt-carousel/isCarousel'] = 'isCarousel';
 			break;
 
+		case 'rt-carousel/carousel-viewport':
+			// Lets accordion items tell slide content apart from carousel navigation.
+			$metadata['attributes']['isCarouselViewport'] = [
+				'type'    => 'boolean',
+				'default' => true,
+			];
+			$metadata['providesContext']['rt-carousel/isInViewport'] = 'isCarouselViewport';
+			break;
+
 		case 'core/query':
-		case 'core/accordion-item':
 			$metadata['usesContext'] = array_values(
 				array_unique(
 					array_merge(
 						$metadata['usesContext'] ?? [],
 						[ 'rt-carousel/isCarousel' ]
+					)
+				)
+			);
+			break;
+
+		case 'core/accordion-item':
+			$metadata['usesContext'] = array_values(
+				array_unique(
+					array_merge(
+						$metadata['usesContext'] ?? [],
+						[ 'rt-carousel/isCarousel', 'rt-carousel/isInViewport' ]
 					)
 				)
 			);
@@ -146,10 +165,13 @@ function filter_query_in_carousel( string $content, array $block, \WP_Block $ins
 
 /**
  * Inject carousel-navigation Interactivity API directives into
- * core/accordion-item blocks that live inside a carousel.
+ * core/accordion-item blocks that live inside a carousel, outside its
+ * viewport. Accordions inside slides are ordinary slide content and are left
+ * untouched.
  *
  * For each item we:
- *   1. Add data-carousel-nav-only and/or data-carousel-target to the wrapper.
+ *   1. Add data-carousel-nav, plus data-carousel-nav-only and/or
+ *      data-carousel-target, to the wrapper.
  *   2. Add data-wp-interactive, data-wp-context, and data-wp-on--click to the
  *      heading element, placing it in the hm-carousel-accordion namespace.
  *   3. Re-qualify the toggle button's directives with the explicit
@@ -163,6 +185,10 @@ function filter_query_in_carousel( string $content, array $block, \WP_Block $ins
  */
 function filter_accordion_item_in_carousel( string $content, array $block, \WP_Block $instance ): string {
 	if ( ! ( $instance->context['rt-carousel/isCarousel'] ?? false ) ) {
+		return $content;
+	}
+
+	if ( $instance->context['rt-carousel/isInViewport'] ?? false ) {
 		return $content;
 	}
 
@@ -183,6 +209,8 @@ function filter_accordion_item_in_carousel( string $content, array $block, \WP_B
 	if ( ! $p->next_tag( [ 'class_name' => 'wp-block-accordion-item' ] ) ) {
 		return $content;
 	}
+
+	$p->set_attribute( 'data-carousel-nav', '' );
 
 	if ( $is_nav_only ) {
 		$p->set_attribute( 'data-carousel-nav-only', '' );

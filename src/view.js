@@ -40,6 +40,34 @@ const panelContainerMap = new Map();
 const activeItemMap = new Map();
 
 /**
+ * Get the accordion items that drive carousel navigation. PHP marks these
+ * with data-carousel-nav; accordions inside slides are slide content and
+ * carry no marker, so they are never matched.
+ *
+ * @param {HTMLElement} carouselEl The .rt-carousel root element.
+ * @return {HTMLElement[]} The navigation accordion items, in DOM order.
+ */
+function getNavItems( carouselEl ) {
+	return [
+		...carouselEl.querySelectorAll(
+			'.wp-block-accordion-item[data-carousel-nav]'
+		),
+	];
+}
+
+/**
+ * Get the accordion block that holds the carousel's navigation items.
+ *
+ * @param {HTMLElement} carouselEl The .rt-carousel root element.
+ * @return {HTMLElement|null} The navigation .wp-block-accordion, or null.
+ */
+function getNavAccordion( carouselEl ) {
+	return (
+		getNavItems( carouselEl )[ 0 ]?.closest( '.wp-block-accordion' ) ?? null
+	);
+}
+
+/**
  * Merge posts from multiple query-loop sections into the first post-template
  * so Embla sees a single continuous slide list.
  *
@@ -133,7 +161,7 @@ function updatePanelContainer( carouselEl, activeItemEl ) {
  * @param {HTMLElement} carouselEl The .rt-carousel root element.
  */
 function initAccordionPanelContainer( carouselEl ) {
-	const accordion = carouselEl.querySelector( '.wp-block-accordion' );
+	const accordion = getNavAccordion( carouselEl );
 	if ( ! accordion ) {
 		return;
 	}
@@ -144,10 +172,7 @@ function initAccordionPanelContainer( carouselEl ) {
 	accordion.after( container );
 	panelContainerMap.set( carouselEl, container );
 
-	const items = [
-		...carouselEl.querySelectorAll( '.wp-block-accordion-item' ),
-	];
-	const initialItem = items.find(
+	const initialItem = getNavItems( carouselEl ).find(
 		( el ) => ! el.hasAttribute( 'data-carousel-nav-only' )
 	);
 	if ( initialItem ) {
@@ -175,7 +200,7 @@ function initCarouselSlideBoundaries( carouselEl ) {
 		return;
 	}
 
-	if ( ! carouselEl.querySelector( '.wp-block-accordion' ) ) {
+	if ( ! getNavAccordion( carouselEl ) ) {
 		return;
 	}
 
@@ -258,14 +283,12 @@ function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
 
 	// Find the accordion item that corresponds to the active section.
 	let newActiveItem = null;
-	carouselEl
-		.querySelectorAll( '.wp-block-accordion-item' )
-		.forEach( ( item, i ) => {
-			const target = item.dataset.carouselTarget;
-			if ( target ? target === sectionId : i === sectionIdx ) {
-				newActiveItem = item;
-			}
-		} );
+	getNavItems( carouselEl ).forEach( ( item, i ) => {
+		const target = item.dataset.carouselTarget;
+		if ( target ? target === sectionId : i === sectionIdx ) {
+			newActiveItem = item;
+		}
+	} );
 
 	const prevActiveItem = activeItemMap.get( carouselEl );
 	if ( newActiveItem === prevActiveItem ) {
@@ -304,7 +327,7 @@ function syncActiveAccordionItem( carouselEl, boundaries, slideIndex ) {
  * @param {HTMLElement} carouselEl The .rt-carousel root element.
  */
 function initAccordionActiveState( carouselEl ) {
-	if ( ! carouselEl.querySelector( '.wp-block-accordion-item' ) ) {
+	if ( ! getNavItems( carouselEl ).length ) {
 		return;
 	}
 
@@ -437,7 +460,7 @@ function forceOpenPanel( panel ) {
  * @param {HTMLElement} carouselEl The .rt-carousel root element.
  */
 function initAccordionCarouselHeightLock( carouselEl ) {
-	const accordion = carouselEl.querySelector( '.wp-block-accordion' );
+	const accordion = getNavAccordion( carouselEl );
 	const viewport = carouselEl.querySelector(
 		'.wp-block-rt-carousel-carousel-viewport'
 	);
@@ -455,9 +478,7 @@ function initAccordionCarouselHeightLock( carouselEl ) {
 		return;
 	}
 
-	const panels = [
-		...accordion.querySelectorAll( '.wp-block-accordion-item' ),
-	]
+	const panels = getNavItems( carouselEl )
 		.filter( ( item ) => ! item.hasAttribute( 'data-carousel-nav-only' ) )
 		.map( ( item ) => item.querySelector( '.wp-block-accordion-panel' ) )
 		.filter( Boolean );
@@ -566,14 +587,9 @@ store( 'hm-carousel-accordion', {
 			if ( manualTarget ) {
 				boundary = boundaries.find( ( b ) => b.id === manualTarget );
 			} else {
-				// Auto mode: match this item's position among accordion items
-				// inside the carousel to the same-index section boundary.
-				const items = [
-					...carouselEl.querySelectorAll(
-						'.wp-block-accordion-item'
-					),
-				];
-				const index = items.indexOf( itemEl );
+				// Auto mode: match this item's position among the navigation
+				// accordion items to the same-index section boundary.
+				const index = getNavItems( carouselEl ).indexOf( itemEl );
 				boundary = index >= 0 ? boundaries[ index ] : undefined;
 			}
 
