@@ -55,7 +55,7 @@ Adds a **Carousel Filters** block (`hm-rt-carousel-extension/carousel-filters`) 
 - Insert a Carousel Filters block anywhere inside the carousel. It renders an "All" button plus one button per tag, in the order tags first appear across the slides. The "All" label can be changed in the block settings.
 - On the front end, choosing a filter hides the non-matching slides and re-initialises Embla with the visible ones, so the controls, dots and progress reflect the filtered set.
 
-The buttons use the theme's element button styles (`.wp-element-button`). Inactive filters are outlined in the block's text colour; the active filter uses the theme's button colours unless **Active filter colors** are set on the block. Font size, spacing, and justification come from the block's own supports.
+The plugin leaves the button appearance to the theme. Buttons render as `<button class="wp-element-button wp-block-hm-rt-carousel-extension-carousel-filters__button">`, so they pick up the theme's element button styles, and the selected filter has `aria-pressed="true"` for the theme to style. Spacing and justification come from the block's own supports.
 
 Filtering works with static slides only, not query-loop slides, and is not combined with accordion carousel navigation or rt-carousel's tabs mode.
 

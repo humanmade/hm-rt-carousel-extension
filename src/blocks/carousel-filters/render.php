@@ -12,34 +12,10 @@
  * @var \WP_Block $block      Block instance.
  */
 
-use function HM\RtCarouselExtension\get_color_attribute_value;
-
 $filter_tags = $block->context['hm-rt-carousel-extension/filterTags'] ?? [];
 
 if ( empty( $filter_tags ) ) {
 	return;
-}
-
-$active_background = get_color_attribute_value(
-	$attributes['activeBackgroundColor'] ?? '',
-	$attributes['customActiveBackgroundColor'] ?? ''
-);
-$active_text       = get_color_attribute_value(
-	$attributes['activeTextColor'] ?? '',
-	$attributes['customActiveTextColor'] ?? ''
-);
-
-$classes = [];
-$styles  = [];
-
-if ( $active_background ) {
-	$classes[] = 'has-active-background';
-	$styles[]  = '--hm-carousel-filters-active-background:' . $active_background;
-}
-
-if ( $active_text ) {
-	$classes[] = 'has-active-text';
-	$styles[]  = '--hm-carousel-filters-active-text:' . $active_text;
 }
 
 wp_interactivity_state(
@@ -57,8 +33,6 @@ $buttons = [ '' => $attributes['allLabel'] ? $attributes['allLabel'] : __( 'All'
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	[
-		'class'      => implode( ' ', $classes ),
-		'style'      => implode( ';', $styles ),
 		'role'       => 'group',
 		'aria-label' => __( 'Filter slides', 'hm-rt-carousel-extension' ),
 	]

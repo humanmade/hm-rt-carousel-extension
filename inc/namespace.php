@@ -126,21 +126,6 @@ function render_slide_filter_tags( string $content, array $block ): string {
 	return (string) $p;
 }
 
-/**
- * Resolve a colour stored by the editor's withColors() as either a preset
- * slug or a custom value into a CSS value.
- *
- * @param string $preset_slug  Preset colour slug.
- * @param string $custom_value Custom colour value.
- * @return string CSS colour value, or an empty string when neither is set.
- */
-function get_color_attribute_value( string $preset_slug, string $custom_value ): string {
-	if ( $preset_slug ) {
-		return 'var(--wp--preset--color--' . sanitize_key( $preset_slug ) . ')';
-	}
-
-	return safecss_filter_attr( 'color:' . $custom_value ) ? $custom_value : '';
-}
 
 /**
  * Extend block metadata so the carousel block provides a context flag to all

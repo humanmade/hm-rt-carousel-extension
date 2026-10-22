@@ -13,31 +13,11 @@
 		"allLabel": {
 			"type": "string",
 			"default": ""
-		},
-		"activeBackgroundColor": {
-			"type": "string"
-		},
-		"customActiveBackgroundColor": {
-			"type": "string"
-		},
-		"activeTextColor": {
-			"type": "string"
-		},
-		"customActiveTextColor": {
-			"type": "string"
 		}
 	},
 	"supports": {
 		"html": false,
 		"interactivity": true,
-		"color": {
-			"text": true,
-			"background": false,
-			"link": false
-		},
-		"typography": {
-			"fontSize": true
-		},
 		"spacing": {
 			"margin": true,
 			"padding": true,

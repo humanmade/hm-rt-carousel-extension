@@ -1,9 +1,4 @@
-import {
-	InspectorControls,
-	PanelColorSettings,
-	useBlockProps,
-	withColors,
-} from '@wordpress/block-editor';
+import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { PanelBody, TextControl } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
 import { useMemo } from '@wordpress/element';
@@ -20,20 +15,12 @@ import { CAROUSEL_BLOCK, getCarouselFilterTags } from '../../filter-tags';
  * @param {string}   props.clientId                   Block client ID.
  * @param {Object}   props.attributes                 Block attributes.
  * @param {Function} props.setAttributes              Block attribute setter.
- * @param {Object}   props.activeBackgroundColor      Active background colour, from withColors.
- * @param {Function} props.setActiveBackgroundColor   Active background colour setter.
- * @param {Object}   props.activeTextColor            Active text colour, from withColors.
- * @param {Function} props.setActiveTextColor         Active text colour setter.
  * @param {string}   props.__unstableLayoutClassNames Flex layout classes. Blocks without inner blocks must apply these themselves.
  */
 function Edit( {
 	clientId,
 	attributes,
 	setAttributes,
-	activeBackgroundColor,
-	setActiveBackgroundColor,
-	activeTextColor,
-	setActiveTextColor,
 	__unstableLayoutClassNames: layoutClassNames,
 } ) {
 	const { allLabel } = attributes;
@@ -57,20 +44,7 @@ function Edit( {
 		[ carouselBlock ]
 	);
 
-	const blockProps = useBlockProps( {
-		className: [
-			layoutClassNames,
-			activeBackgroundColor.color && 'has-active-background',
-			activeTextColor.color && 'has-active-text',
-		]
-			.filter( Boolean )
-			.join( ' ' ),
-		style: {
-			'--hm-carousel-filters-active-background':
-				activeBackgroundColor.color,
-			'--hm-carousel-filters-active-text': activeTextColor.color,
-		},
-	} );
+	const blockProps = useBlockProps( { className: layoutClassNames } );
 
 	const labels = [
 		allLabel || __( 'All', 'hm-rt-carousel-extension' ),
@@ -97,27 +71,6 @@ function Edit( {
 						__nextHasNoMarginBottom
 					/>
 				</PanelBody>
-				<PanelColorSettings
-					title={ __(
-						'Active filter colors',
-						'hm-rt-carousel-extension'
-					) }
-					colorSettings={ [
-						{
-							value: activeBackgroundColor.color,
-							onChange: setActiveBackgroundColor,
-							label: __(
-								'Background',
-								'hm-rt-carousel-extension'
-							),
-						},
-						{
-							value: activeTextColor.color,
-							onChange: setActiveTextColor,
-							label: __( 'Text', 'hm-rt-carousel-extension' ),
-						},
-					] }
-				/>
 			</InspectorControls>
 			<div { ...blockProps }>
 				{ tags.length ? (
@@ -144,7 +97,4 @@ function Edit( {
 	);
 }
 
-export default withColors( {
-	activeBackgroundColor: 'background-color',
-	activeTextColor: 'color',
-} )( Edit );
+export default Edit;
