@@ -1,0 +1,5 @@
+// Button appearance comes from the theme; only the pressed state is exposed,
+// as aria-pressed, for themes to style.
+.wp-block-hm-rt-carousel-extension-carousel-filters__button {
+	cursor: pointer;
+}

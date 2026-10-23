@@ -24,7 +24,108 @@ function bootstrap(): void {
 	add_filter( 'block_type_metadata', __NAMESPACE__ . '\\extend_carousel_context' );
 	add_filter( 'render_block_core/query', __NAMESPACE__ . '\\filter_query_in_carousel', 10, 3 );
 	add_filter( 'render_block_core/accordion-item', __NAMESPACE__ . '\\filter_accordion_item_in_carousel', 10, 3 );
+	add_action( 'init', __NAMESPACE__ . '\\register_blocks' );
+	add_filter( 'render_block_context', __NAMESPACE__ . '\\collect_carousel_filter_tags', 10, 2 );
+	add_filter( 'render_block_rt-carousel/carousel-slide', __NAMESPACE__ . '\\render_slide_filter_tags', 10, 2 );
 }
+
+/**
+ * Register the blocks this plugin owns.
+ *
+ * @return void
+ */
+function register_blocks(): void {
+	register_block_type( dirname( __DIR__ ) . '/build/blocks/carousel-filters' );
+}
+
+/**
+ * Get a slide's filter tags keyed by slug, de-duplicated by slug.
+ *
+ * @param array $block Parsed rt-carousel/carousel-slide block.
+ * @return array<string, string> Tag labels keyed by slug.
+ */
+function get_slide_filter_tags( array $block ): array {
+	$tags = [];
+
+	foreach ( (array) ( $block['attrs']['filterTags'] ?? [] ) as $label ) {
+		$label = trim( (string) $label );
+		$slug  = sanitize_title( $label );
+		if ( $slug && ! isset( $tags[ $slug ] ) ) {
+			$tags[ $slug ] = $label;
+		}
+	}
+
+	return $tags;
+}
+
+/**
+ * Collect the filter tags from every slide in a carousel and add them to the
+ * carousel's context, which WordPress passes on to all of its descendants,
+ * including the carousel filters block. Tags keep the order they first
+ * appear in.
+ *
+ * Context is used rather than a render-time attribute because WP_Block caches
+ * its attributes, so attributes added in render_block_data never reach the
+ * context a nested carousel provides.
+ *
+ * Nested carousels are skipped; they collect their own tags when rendered.
+ *
+ * @param array $context      Block context.
+ * @param array $parsed_block Parsed block.
+ * @return array Context, with the carousel's filter tags for carousels.
+ */
+function collect_carousel_filter_tags( array $context, array $parsed_block ): array {
+	if ( ( $parsed_block['blockName'] ?? '' ) !== 'rt-carousel/carousel' ) {
+		return $context;
+	}
+
+	$tags = [];
+
+	$walk = function ( array $blocks ) use ( &$walk, &$tags ): void {
+		foreach ( $blocks as $block ) {
+			switch ( $block['blockName'] ?? '' ) {
+				case 'rt-carousel/carousel':
+					break;
+
+				case 'rt-carousel/carousel-slide':
+					$tags += get_slide_filter_tags( $block );
+					break;
+
+				default:
+					$walk( $block['innerBlocks'] ?? [] );
+			}
+		}
+	};
+
+	$walk( $parsed_block['innerBlocks'] ?? [] );
+
+	$context['hm-rt-carousel-extension/filterTags'] = $tags;
+
+	return $context;
+}
+
+/**
+ * Add a data-carousel-filters attribute holding the slide's space-separated
+ * filter tag slugs, read by the carousel filters view module.
+ *
+ * @param string $content Rendered block HTML.
+ * @param array  $block   Parsed block array.
+ * @return string Modified HTML.
+ */
+function render_slide_filter_tags( string $content, array $block ): string {
+	$tags = get_slide_filter_tags( $block );
+	if ( empty( $tags ) ) {
+		return $content;
+	}
+
+	$p = new \WP_HTML_Tag_Processor( $content );
+	if ( $p->next_tag() ) {
+		$p->set_attribute( 'data-carousel-filters', implode( ' ', array_keys( $tags ) ) );
+	}
+
+	return (string) $p;
+}
+
 
 /**
  * Extend block metadata so the carousel block provides a context flag to all
@@ -43,6 +144,14 @@ function extend_carousel_context( array $metadata ): array {
 				'default' => true,
 			];
 			$metadata['providesContext']['rt-carousel/isCarousel'] = 'isCarousel';
+			break;
+
+		case 'rt-carousel/carousel-slide':
+			$metadata['attributes']['filterTags'] = [
+				'type'    => 'array',
+				'items'   => [ 'type' => 'string' ],
+				'default' => [],
+			];
 			break;
 
 		case 'rt-carousel/carousel-viewport':
