@@ -12,12 +12,18 @@ import {
 	SelectControl,
 	ToggleControl,
 	BaseControl,
+	FormTokenField,
 } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
+import { useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { FetchAllTermSelectControl } from '@humanmade/block-editor-components';
 
-const CAROUSEL_BLOCK = 'rt-carousel/carousel';
+import {
+	CAROUSEL_BLOCK,
+	SLIDE_BLOCK,
+	getCarouselFilterTags,
+} from './filter-tags';
 
 /**
  * Inspector control for selecting a theme spacing preset as the carousel slide gap.
@@ -428,6 +434,120 @@ const setAccordionItemAttributes = ( settings, name ) => {
 	};
 };
 
+/**
+ * Inspector panel for tagging a carousel slide with the filters it belongs
+ * to. Suggests tags already used on other slides in the same carousel so the
+ * filter buttons stay consistent.
+ *
+ * @param {Object}   root0
+ * @param {string}   root0.clientId      Block client ID.
+ * @param {Object}   root0.attributes    Block attributes.
+ * @param {Function} root0.setAttributes Block attribute setter.
+ */
+const SlideFilterTagsInspector = ( {
+	clientId,
+	attributes,
+	setAttributes,
+} ) => {
+	const carouselBlock = useSelect(
+		( select ) => {
+			const { getBlockParentsByBlockName, getBlock } =
+				select( 'core/block-editor' );
+			const [ carouselId ] = getBlockParentsByBlockName(
+				clientId,
+				CAROUSEL_BLOCK,
+				true
+			);
+			return carouselId ? getBlock( carouselId ) : null;
+		},
+		[ clientId ]
+	);
+
+	const suggestions = useMemo(
+		() => getCarouselFilterTags( carouselBlock ),
+		[ carouselBlock ]
+	);
+
+	return (
+		<InspectorControls>
+			<PanelBody
+				title={ __( 'Carousel Filters', 'hm-rt-carousel-extension' ) }
+			>
+				<FormTokenField
+					label={ __( 'Filter tags', 'hm-rt-carousel-extension' ) }
+					value={ attributes.filterTags ?? [] }
+					suggestions={ suggestions }
+					onChange={ ( tokens ) =>
+						setAttributes( {
+							filterTags: tokens
+								.map( ( token ) =>
+									( token?.value ?? token ).trim()
+								)
+								.filter( Boolean ),
+						} )
+					}
+					__experimentalExpandOnFocus
+					__experimentalShowHowTo={ false }
+					__next40pxDefaultSize
+					__nextHasNoMarginBottom
+				/>
+				<p className="components-base-control__help">
+					{ __(
+						'The slide shows when any of these filters is selected. Add a Carousel Filters block to the carousel to show the filter buttons.',
+						'hm-rt-carousel-extension'
+					) }
+				</p>
+			</PanelBody>
+		</InspectorControls>
+	);
+};
+
+/**
+ * HOC that injects the filter tags inspector into rt-carousel/carousel-slide.
+ */
+const withSlideFilterTags = createHigherOrderComponent(
+	( BlockEdit ) => ( props ) => {
+		if ( props.name !== SLIDE_BLOCK ) {
+			return <BlockEdit { ...props } />;
+		}
+		return (
+			<>
+				<BlockEdit { ...props } />
+				<SlideFilterTagsInspector
+					clientId={ props.clientId }
+					attributes={ props.attributes }
+					setAttributes={ props.setAttributes }
+				/>
+			</>
+		);
+	},
+	'withSlideFilterTags'
+);
+
+/**
+ * Adds the filterTags attribute to rt-carousel/carousel-slide.
+ *
+ * @param {Object} settings Block type settings.
+ * @param {string} name     Block name.
+ * @return {Object} Modified settings.
+ */
+const setSlideAttributes = ( settings, name ) => {
+	if ( name !== SLIDE_BLOCK ) {
+		return settings;
+	}
+	return {
+		...settings,
+		attributes: {
+			...settings.attributes,
+			filterTags: {
+				type: 'array',
+				items: { type: 'string' },
+				default: [],
+			},
+		},
+	};
+};
+
 const filters = [
 	{
 		hook: 'blocks.getSaveContent.extraProps',
@@ -458,6 +578,17 @@ const filters = [
 		hook: 'editor.BlockEdit',
 		namespace: 'hm-rt-carousel-extension/accordion-carousel-nav',
 		callback: withAccordionCarouselNav,
+	},
+	{
+		hook: 'blocks.registerBlockType',
+		namespace:
+			'hm-rt-carousel-extension/carousel-slide-filter-tags-attribute',
+		callback: setSlideAttributes,
+	},
+	{
+		hook: 'editor.BlockEdit',
+		namespace: 'hm-rt-carousel-extension/carousel-slide-filter-tags',
+		callback: withSlideFilterTags,
 	},
 ];
 
